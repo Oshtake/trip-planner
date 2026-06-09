@@ -1,0 +1,3644 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="root">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guangzhou Production Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ── TOKENS ── */
+:root {
+  /* ── SPOTIFY LIGHT ── */
+  --bg:        #f0f2f5;
+  --surface:   #ffffff;
+  --surface2:  #f7f8fa;
+  --dim:       #eceef2;
+  --dim2:      #e2e5ec;
+  --border:    #e0e3ea;
+  --text:      #121212;
+  --text2:     #535353;
+  --text3:     #a0a0a0;
+  --accent:    #1DB954;      /* Spotify green */
+  --accent-2:  #1ed760;      /* hover green */
+  --accent-dim:#e8f9ee;
+  --red:       #1DB954;
+  --warn:      #f59e0b;
+  --danger:    #ef4444;
+  --ok:        #1DB954;
+  --grad:      linear-gradient(135deg, #1DB954 0%, #17a347 100%);
+  --grad-dark: linear-gradient(135deg, #121212 0%, #282828 100%);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 20px rgba(0,0,0,.12);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.18);
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Figtree', sans-serif;
+  --r: 12px;
+  --r-sm: 8px;
+  --r-pill: 999px;
+}
+
+[data-theme="dark"] {
+  --bg:        #121212;
+  --surface:   #181818;
+  --surface2:  #282828;
+  --dim:       #282828;
+  --dim2:      #3e3e3e;
+  --border:    #2a2a2a;
+  --text:      #ffffff;
+  --text2:     #b3b3b3;
+  --text3:     #535353;
+  --accent:    #1DB954;
+  --accent-2:  #1ed760;
+  --accent-dim:rgba(29,185,84,.15);
+  --warn:      #f59e0b;
+  --danger:    #ef4444;
+  --ok:        #1DB954;
+  --grad:      linear-gradient(135deg, #1DB954 0%, #17a347 100%);
+  --grad-dark: linear-gradient(135deg, #121212 0%, #282828 100%);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,.4);
+  --shadow-md: 0 4px 20px rgba(0,0,0,.5);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.6);
+}
+
+[data-theme="dark"] {
+  --bg:       #11141c;
+  --surface:  #1a1f2b;
+  --dim:      #222836;
+  --dim2:     #2b3242;
+  --border:   #2e3645;
+  --text:     #e8ecf3;
+  --text2:    #9aa5b8;
+  --text3:    #5f6a7e;
+  --red:      #4c9aff;
+  --accent:   #4c9aff;
+  --accent-2: #2bd4e8;
+  --grad:     linear-gradient(135deg, #4c9aff 0%, #2bd4e8 100%);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  transition: background .2s, color .2s;
+  transition: background .25s, color .25s;
+  min-height: 100vh;
+  direction: rtl;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ── */
+.hdr {
+  background: var(--grad-dark);
+  border-bottom: none;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 20px rgba(0,0,0,.3);
+}
+.hdr-brand { display: flex; align-items: center; gap: 12px; }
+.hdr-brand h1 {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(29,185,84,.4);
+}
+.hdr-brand .trip-name {
+  font-size: 12px;
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255,255,255,.2);
+}
+.hdr-right { display: flex; align-items: center; gap: 6px; }
+.save-pill {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity .5s;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(29,185,84,.4);
+}
+.save-pill.show { opacity: 1; }
+
+/* ── TABS ── */
+.tabs {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 8px 24px 0;
+  overflow-x: auto;
+  gap: 4px;
+}
+.tab {
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text2);
+  border-radius: var(--r-pill) var(--r-pill) 0 0;
+  border-bottom: 3px solid transparent;
+  font-family: var(--sans);
+  white-space: nowrap;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  transition: color .15s, background .15s;
+}
+.tab:hover:not(.active) { background: var(--dim); color: var(--text); }
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-dim);
+}
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── LAYOUT ── */
+.main { padding: 24px 32px; max-width: 1300px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding: 6px 13px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--sans);
+  border: none;
+  transition: all .12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+  letter-spacing: .01em;
+}
+.btn-dark { background: var(--grad); color: #fff; box-shadow: 0 2px 12px rgba(29,185,84,.35); font-weight: 700; }
+.btn-dark:hover { background: var(--accent-2); color: #000; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(29,185,84,.4); }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+.btn-ghost:hover { background: var(--dim); color: var(--text); }
+.btn-danger { background: transparent; border: 1px solid #f0cac0; color: #a02818; font-size: 11px; }
+.btn-danger:hover { background: #fff2f0; }
+.btn-sm  { padding: 4px 10px; font-size: 11px; }
+.btn-xs  { padding: 2px 7px;  font-size: 10px; }
+
+/* ── TRIPS ── */
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.tcard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  cursor: pointer;
+  transition: box-shadow .18s, transform .18s, background .18s;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+.tcard:hover { box-shadow: var(--shadow-md); transform: translateY(-4px); background: var(--surface2); }
+.tcard.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(29,185,84,.15); background: var(--accent-dim); }
+.tcard-acts { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; z-index: 5; }
+.tcard:hover .tcard-acts { opacity: 1; }
+.tcard-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.tcard-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; letter-spacing: -.01em; }
+.tcard-meta { font-size: 11px; color: var(--text2); font-family: var(--mono); line-height: 1.4; }
+.tcard-note { font-size: 11px; color: var(--text2); margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); }
+.empty-state { text-align: center; padding: 64px 20px; color: var(--text2); }
+.empty-state .ico { font-size: 32px; margin-bottom: 14px; opacity: .5; }
+.empty-state h2 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.empty-state p  { font-size: 12px; margin-bottom: 18px; }
+
+/* ── STATS ── */
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.stat {
+  background: var(--surface);
+  padding: 16px 20px;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow .15s, transform .15s;
+}
+.stat:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; left: 0;
+  height: 3px;
+  background: var(--grad);
+}
+.stat:last-child { border-right: none; }
+.stat-label { font-size: 9px; font-family: var(--mono); color: var(--text3); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.stat-val {
+  font-size: 26px;
+  font-family: var(--sans);
+  font-weight: 900;
+  color: var(--accent);
+  margin-top: 4px;
+  text-shadow: 0 0 12px rgba(29,185,84,.2);
+}
+
+/* ── SCHEDULE ── */
+/* cards layout — each day is its own box */
+.schedule-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: transparent;
+  border: none;
+}
+
+.day-block {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .18s, transform .18s;
+  position: relative;
+}
+.day-block:hover { box-shadow: 0 8px 24px rgba(29,185,84,.12), var(--shadow-md); transform: translateY(-2px); border-color: var(--accent); }
+.day-block:last-child { border-bottom: 1.5px solid var(--border); }
+
+/* Two-column day header */
+.day-hdr {
+  display: grid;
+  grid-template-columns: 40px 64px 1fr auto;
+  align-items: stretch;
+  background: var(--dim);
+  border-bottom: 1px solid var(--border);
+  min-height: 54px;
+}
+.day-num-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--border);
+  padding: 0 8px;
+}
+.day-hdr-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 4px;
+  border-right: 1px solid var(--border);
+  opacity: 0;
+  transition: opacity .15s;
+}
+.day-block:hover .day-hdr-actions { opacity: 1; }
+.day-act-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  width: 26px;
+  height: 18px;
+  cursor: pointer;
+  font-size: 10px;
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+  padding: 0;
+  transition: all .12s;
+}
+.day-act-btn:hover { background: var(--dim); color: var(--text); border-color: var(--border); }
+.day-act-btn.danger:hover { background: #fff0ee; color: #a02818; border-color: #f0cac0; }
+.day-num {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+  text-shadow: 0 0 12px rgba(29,185,84,.3);
+}
+.day-info-col {
+  padding: 11px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.day-date  { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+.day-goal-inp {
+  font-size: 11px;
+  color: var(--text2);
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  width: 100%;
+  outline: none;
+}
+.day-goal-inp::placeholder { color: var(--text3); }
+.day-goal-inp:focus { border-bottom: 1px solid var(--border); }
+.day-type-col {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+.hotel-inp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(26,90,106,.08);
+  border: 1px solid rgba(26,90,106,.2);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+.hotel-inp-wrap .hotel-ico { font-size: 12px; flex-shrink: 0; }
+.hotel-inp {
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-family: var(--sans);
+  color: #1a5a6a;
+  outline: none;
+  min-width: 80px;
+  max-width: 160px;
+}
+.hotel-inp::placeholder { color: rgba(26,90,106,.45); font-style: italic; }
+.day-type-tag {
+  font-size: 10px;
+  font-family: var(--sans);
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: .01em;
+  border: none;
+}
+.dtt-work   { background: #e5efff; color: #0073ea; }
+.dtt-flight { background: #fdeede; color: #e8930c; }
+.dtt-free   { background: #e4f8ee; color: #00a868; }
+.dtt-travel { background: #f0ebff; color: #7b4cdb; }
+.dtt-empty  { background: var(--dim2); color: var(--text3); }
+
+/* ── TIMELINE ── */
+.timeline {}
+
+.tl-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  border-bottom: 1px solid var(--border);
+  min-height: 40px;
+  transition: filter .08s;
+}
+.tl-row:last-child { border-bottom: none; }
+.tl-row:hover { background: rgba(29,185,84,.04) !important; border-left: 2px solid var(--accent); }
+
+.tl-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text2);
+  border-left: 1px solid var(--border);
+  letter-spacing: .02em;
+}
+.tl-cell {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.drag-handle {
+  cursor: grab;
+  color: var(--text3);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity .12s;
+  user-select: none;
+  flex-shrink: 0;
+  letter-spacing: -2px;
+}
+.tl-row:hover .drag-handle { opacity: 1; }
+.tl-row[draggable=true]:active .drag-handle { cursor: grabbing; }
+.tl-row.dragging { opacity: .4; background: var(--dim) !important; }
+.tl-row.drag-over-top { box-shadow: inset 0 2px 0 0 var(--red); }
+.tl-row.drag-over-bot { box-shadow: inset 0 -2px 0 0 var(--red); }
+.timeline.drag-target { background: rgba(200,67,26,.04); }
+.cat-bar {
+  width: 4px;
+  height: 22px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.tl-text-inp {
+  font-size: 13px;
+  font-weight: 400;
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  color: var(--text);
+  outline: none;
+  line-height: 1.4;
+}
+.tl-text-inp::placeholder { color: var(--text3); font-style: italic; }
+.tl-acts {
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.tl-row:hover .tl-acts { opacity: 1; }
+
+/* ── ADD ROW ── */
+.add-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  border-top: 1px dashed var(--border);
+  background: var(--bg);
+}
+.add-row-time {
+  border-left: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+.add-row-cell { padding: 7px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.add-inp {
+  font-size: 12px;
+  font-family: var(--sans);
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color .12s;
+}
+.add-inp:focus { border-color: #a8a29a; }
+.add-inp-text { flex: 1; min-width: 120px; }
+.time-inp { width: 72px; font-family: var(--mono); font-size: 11px; }
+
+/* ── LOGISTICS ── */
+.log-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.log-hdr {
+  padding: 13px 18px;
+  background: var(--dim);
+  border-bottom: 2px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  letter-spacing: -.01em;
+}
+.log-table { width: 100%; border-collapse: collapse; }
+.log-table th {
+  text-align: var(--th-align, right);
+  padding: 10px 14px;
+  font-size: 10px;
+  font-family: var(--sans);
+  font-weight: 700;
+  color: var(--text3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.log-table td {
+  padding: 11px 14px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text);
+}
+.log-table tr:last-child td { border-bottom: none; }
+.log-table tr:hover td { background: var(--dim); }
+.ec { outline: none; border-bottom: 1px dashed transparent; min-width: 28px; display: inline-block; }
+.ec:focus { border-bottom-color: var(--text3); }
+
+/* ── GANTT ── */
+.gantt-outer {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+}
+.gtable { border-collapse: collapse; min-width: 100%; }
+.gtable th {
+  padding: 10px 6px;
+  font-size: 10px;
+  font-family: var(--sans);
+  font-weight: 700;
+  background: var(--grad);
+  color: #fff;
+  border: none;
+  border-right: 1px solid rgba(255,255,255,.15);
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+.gtable th.gl { text-align: right; min-width: 160px; border-radius: 0; }
+.gtable td { border: 1px solid var(--border); padding: 3px; height: 34px; background: var(--surface); }
+.gtable td.gl {
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--dim);
+  white-space: nowrap;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.gbar {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  font-size: 10px;
+  font-family: var(--sans);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: .01em;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
+.g-sec td {
+  background: var(--dim2);
+  font-size: 10px;
+  font-family: var(--sans);
+  font-weight: 800;
+  color: var(--accent);
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+/* ── MODAL ── */
+.overlay { position: fixed; inset: 0; background: rgba(18,12,8,.35); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(2px); }
+.overlay.hidden { display: none; }
+.modal {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 26px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0,0,0,.14), 0 2px 8px rgba(0,0,0,.06);
+}
+.modal-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; letter-spacing: -.01em; }
+.modal-x { position: absolute; top: 14px; left: 14px; background: none; border: none; font-size: 15px; cursor: pointer; color: var(--text2); padding: 4px; }
+.modal-x:hover { color: var(--text); }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* FORM */
+.fr { margin-bottom: 13px; }
+.fr label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 5px; letter-spacing: .02em; }
+.fr input, .fr select, .fr textarea {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .12s;
+}
+.fr input:focus, .fr select:focus, .fr textarea:focus { border-color: #a8a29a; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.divider { text-align: center; color: var(--text3); font-size: 11px; margin: 14px 0; position: relative; }
+.divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 44%; height: 1px; background: var(--border); }
+.divider::before { right: 0; } .divider::after { left: 0; }
+.hint { font-size: 11px; color: var(--text2); padding: 9px 11px; background: var(--dim); border-radius: 4px; margin-top: -6px; margin-bottom: 10px; border: 1px solid var(--border); line-height: 1.5; }
+
+/* DAY SETUP */
+.ds-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 4px; background: var(--surface); }
+.ds-daynum { font-family: var(--mono); font-size: 12px; color: var(--red); min-width: 52px; font-weight: 500; }
+.ds-daylabel { font-size: 11px; color: var(--text2); min-width: 80px; }
+.ds-date { font-size: 10px; color: var(--text3); font-family: var(--mono); flex: 1; }
+.ds-btns { display: flex; gap: 3px; }
+
+/* SETTINGS / CATEGORIES */
+.cat-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--dim); border-radius: 4px; border: 1px solid var(--border); margin-bottom: 4px; }
+.cat-color { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border); cursor: pointer; flex-shrink: 0; padding: 0; }
+.cat-emoji { width: 28px; border: none; background: transparent; font-size: 14px; text-align: center; outline: none; }
+.cat-name  { flex: 1; border: none; background: transparent; font-size: 12px; font-family: var(--sans); color: var(--text); outline: none; border-bottom: 1px dashed transparent; }
+.cat-name:focus { border-bottom-color: var(--border); }
+
+/* NO TRIP */
+.no-trip { text-align: center; padding: 32px; color: var(--text2); font-size: 12px; }
+
+/* DASHED ADD */
+.btn-add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 7px 12px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text2);
+  font-family: var(--sans);
+  transition: all .12s;
+}
+.btn-add-row:hover { background: var(--dim); color: var(--text); border-style: solid; }
+
+/* auto rows from schedule */
+.log-auto-section {
+  border-bottom: 1px solid var(--border);
+  background: var(--dim);
+}
+.log-auto-hdr {
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--dim);
+  border-bottom: 1px solid var(--border);
+}
+.log-auto-label {
+  font-size: 10px;
+  font-family: var(--sans);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+.log-manual-label {
+  padding: 7px 14px;
+  font-size: 10px;
+  font-family: var(--sans);
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-weight: 700;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: block;
+}
+.log-table tr.auto-row td {
+  background: linear-gradient(90deg, rgba(0,115,234,.05), transparent);
+  color: var(--text2);
+  font-style: normal;
+}
+.log-table tr.auto-row td .auto-link {
+  font-size: 10px;
+  color: #fff;
+  background: var(--accent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+/* LTR overrides */
+[dir=ltr] .gtable th.gl { text-align: left; }
+[dir=ltr] .modal-x { right: 14px; left: auto; }
+[dir=ltr] .hdr-brand .trip-name { border-right: none; padding-right: 0; border-left: 1px solid var(--border); padding-left: 12px; }
+[dir=ltr] .tcard-acts { right: 10px; left: auto; bottom: 10px; top: auto; }
+[dir=ltr] .log-table th { text-align: left; }
+[dir=ltr] .day-goal-inp { direction: ltr; }
+[dir=ltr] .day-num-col { border-left: none; border-right: 1px solid var(--border); }
+[dir=ltr] .day-hdr-actions { border-right: none; border-left: 1px solid var(--border); }
+[dir=ltr] .tl-time { border-left: none; border-right: 1px solid var(--border); }
+[dir=ltr] .add-row-time { border-left: none; border-right: 1px solid var(--border); }
+
+@media (max-width: 640px) {
+  .hdr { padding: 0 14px; }
+  .main { padding: 14px; }
+  .tabs { padding: 0 14px; }
+  .g2 { grid-template-columns: 1fr; }
+  .trips-grid { grid-template-columns: 1fr; }
+  .stats-row { flex-wrap: wrap; }
+}
+
+/* ── READINESS DASHBOARD ── */
+.ready-dash {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 20px;
+}
+.ready-dash-header {
+  background: var(--grad-dark);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ready-score-ring {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ready-score-num {
+  font-size: 40px;
+  font-weight: 900;
+  font-family: var(--sans);
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(29,185,84,.5);
+  line-height: 1;
+}
+.ready-score-label { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.ready-score-title { font-size: 18px; font-weight: 800; color: #fff; }
+.ready-ring-svg { filter: drop-shadow(0 0 8px rgba(29,185,84,.4)); }
+.ready-stats-row { display: flex; padding: 16px 24px; gap: 0; border-bottom: 1px solid var(--border); }
+.ready-stat { flex:1; text-align: center; padding: 8px; border-right: 1px solid var(--border); }
+.ready-stat:last-child { border-right: none; }
+.ready-stat-val { font-size: 22px; font-weight: 900; color: var(--accent); }
+.ready-stat-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text3); margin-top: 2px; }
+.ready-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.ready-col { padding: 18px 24px; }
+.ready-col:first-child { border-right: 1px solid var(--border); }
+.ready-col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text3); margin-bottom: 12px; }
+.ready-item { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; color: var(--text2); }
+.ready-item.ok  { color: var(--ok); }
+.ready-item.warn { color: var(--warn); }
+.ready-item.err  { color: var(--danger); }
+.ready-item-icon { font-size: 14px; flex-shrink: 0; }
+
+/* ── MISSING BANNER ── */
+.missing-banner {
+  background: linear-gradient(135deg, #1a0a0a, #2d1010);
+  border: 1px solid rgba(239,68,68,.4);
+  border-radius: var(--r);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 0 20px rgba(239,68,68,.15);
+}
+.missing-banner-text { display: flex; flex-direction: column; gap: 4px; }
+.missing-banner-title { font-size: 13px; font-weight: 800; color: #ef4444; }
+.missing-banner-items { font-size: 11px; color: rgba(255,255,255,.6); }
+.missing-banner-btn { background: rgba(239,68,68,.2); border: 1px solid rgba(239,68,68,.4); color: #ef4444; padding: 8px 16px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.missing-banner-btn:hover { background: rgba(239,68,68,.35); }
+
+/* ── VALIDATION PANEL ── */
+.validation-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.validation-header {
+  background: var(--dim);
+  padding: 12px 20px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.validation-header:hover { background: var(--dim2); }
+.v-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
+.v-item:last-child { border-bottom: none; }
+.v-item:hover { background: var(--dim); }
+.v-item.ok   { color: var(--text); }
+.v-item.warn { color: var(--warn); background: rgba(245,158,11,.04); }
+.v-item.err  { color: var(--danger); background: rgba(239,68,68,.04); }
+.v-item-icon { font-size: 15px; flex-shrink: 0; }
+.v-section-label { padding: 6px 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text3); background: var(--surface2); border-bottom: 1px solid var(--border); }
+
+/* ── HOTEL TIMELINE ── */
+.hotel-timeline { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; }
+.ht-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 12px; }
+.ht-row.covered { background: rgba(29,185,84,.08); color: var(--ok); }
+.ht-row.missing { background: rgba(239,68,68,.08); color: var(--danger); }
+.ht-date { font-family: var(--mono); font-size: 11px; min-width: 90px; font-weight: 600; }
+.ht-name { flex:1; }
+.ht-status { font-size: 15px; }
+.ht-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill); }
+.ht-badge.booked  { background: rgba(29,185,84,.2); color: var(--ok); }
+.ht-badge.confirm { background: rgba(245,158,11,.2); color: var(--warn); }
+.ht-badge.book    { background: rgba(239,68,68,.2); color: var(--danger); }
+
+/* ── CHECKLIST ── */
+.checklist-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+.checklist-header { background: var(--grad-dark); padding: 14px 20px; font-size: 13px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: space-between; }
+.checklist-progress { font-size: 11px; color: var(--accent); font-weight: 700; }
+.checklist-progress-bar-wrap { height: 3px; background: var(--dim2); }
+.checklist-progress-bar { height: 3px; background: var(--grad); transition: width .3s; }
+.cl-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; user-select: none; }
+.cl-item:last-child { border-bottom: none; }
+.cl-item:hover { background: var(--dim); }
+.cl-check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.cl-item.done .cl-check { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cl-item.done .cl-text { text-decoration: line-through; color: var(--text3); }
+.cl-text { flex:1; font-size: 13px; color: var(--text); }
+.cl-emoji { font-size: 16px; }
+.cl-add-row { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); }
+.cl-add-inp { flex:1; border: 1px solid var(--border); border-radius: var(--r-pill); padding: 8px 14px; font-size: 12px; background: var(--dim); color: var(--text); outline: none; }
+.cl-add-inp:focus { border-color: var(--accent); }
+
+/* ── STATUS BADGE ── */
+.status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: var(--r-pill); font-size: 10px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.status-badge.ready    { background: rgba(29,185,84,.15); color: var(--ok); }
+.status-badge.planning { background: rgba(245,158,11,.15); color: var(--warn); }
+.status-badge.critical { background: rgba(239,68,68,.15); color: var(--danger); }
+
+/* ── HEADER BUTTONS (all white on dark bg) ── */
+.hdr .btn {
+  color: rgba(255,255,255,.85);
+  border-color: rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.hdr .btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.35);
+}
+.hdr .btn-dark {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 800;
+}
+.hdr .btn-dark:hover {
+  background: var(--accent-2);
+  color: #000;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 16px rgba(29,185,84,.4);
+}
+/* ── THEME TOGGLE ── */
+#btn-theme {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.85);
+}
+#btn-theme:hover { background: rgba(255,255,255,.18); color: #fff; }
+
+/* ── MAIN ── */
+.main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+
+/* ── CALENDAR VIEW ── */
+.cal-wrap { display: flex; flex-direction: column; gap: 32px; }
+.cal-month-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-sm); }
+.cal-month-hdr {
+  background: var(--grad-dark);
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cal-month-hdr span { color: var(--accent); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid var(--border);
+}
+.cal-dow {
+  padding: 8px 6px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text3);
+  background: var(--dim);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.cal-dow:last-child { border-right: none; }
+.cal-day {
+  min-height: 90px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6px;
+  position: relative;
+  cursor: default;
+  transition: background .12s;
+  overflow: hidden;
+}
+.cal-day:nth-child(7n) { border-right: none; }
+.cal-day.cal-trip-day { cursor: pointer; }
+.cal-day.cal-trip-day:hover { background: var(--accent-dim); }
+.cal-day.cal-empty { background: var(--bg); opacity: .4; cursor: default; }
+.cal-day-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text3);
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.cal-day.cal-trip-day .cal-day-num { color: var(--text); }
+.cal-day.cal-today .cal-day-num {
+  background: var(--accent);
+  color: #000;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.cal-day-type-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.cal-pill {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 1.3;
+}
+.cal-day-daynum {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--accent);
+  font-weight: 700;
+}
+.cal-more {
+  font-size: 9px;
+  color: var(--text3);
+  font-style: italic;
+  margin-top: 1px;
+}
+
+/* popup */
+.cal-popup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 600;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+.cal-popup {
+  background: var(--surface);
+  border-radius: var(--r);
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+.cal-popup-hdr {
+  background: var(--grad-dark);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0;
+}
+.cal-popup-title { font-size: 14px; font-weight: 800; color: #fff; }
+.cal-popup-meta  { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 2px; }
+.cal-popup-close { background: none; border: none; color: rgba(255,255,255,.7); font-size: 18px; cursor: pointer; line-height: 1; padding: 0; }
+.cal-popup-close:hover { color: #fff; }
+.cal-popup-body { padding: 14px 16px; }
+.cal-popup-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  min-height: 38px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.cal-popup-row:last-child { border-bottom: none; }
+.cal-popup-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text2);
+  font-weight: 600;
+  padding: 6px 0;
+  border-left: 1px solid var(--border);
+  text-align: center;
+}
+.cal-popup-entry {
+  padding: 7px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.cal-popup-goal {
+  font-size: 11px;
+  color: var(--text2);
+  padding: 10px 14px;
+  background: var(--dim);
+  border-bottom: 1px solid var(--border);
+  font-style: italic;
+}
+.cal-popup-hotel {
+  font-size: 11px;
+  color: #1a5a6a;
+  padding: 8px 14px;
+  background: rgba(26,90,106,.06);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.cal-empty-day-msg {
+  padding: 24px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+  font-style: italic;
+}
+
+
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 14mm 12mm;
+  }
+
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  body { background: #fff !important; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+  .pdf-only { display: block !important; }
+  .pdf-hide { display: none !important; }
+
+  /* hide app chrome */
+  .hdr, .tabs, .btn, .tl-acts, .add-row,
+  .tcard-acts, #stats-area { display: none !important; }
+
+  /* layout */
+  .main { padding: 0 !important; max-width: 100% !important; }
+  .section { display: block !important; }
+  #tab-trips, #tab-logistics, #tab-gantt, #tab-cats { display: none !important; }
+  #tab-schedule { display: block !important; }
+
+  /* PDF header */
+  .pdf-doc-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1c1814;
+    margin-bottom: 16px;
+  }
+  .pdf-doc-title { font-size: 18pt; font-weight: 700; color: #1c1814; }
+  .pdf-doc-meta  { font-size: 9pt;  color: #6a6058; text-align: right; line-height: 1.5; }
+
+  /* schedule wrap */
+  .schedule-wrap { border: none !important; border-radius: 0 !important; }
+
+  /* day block */
+  .day-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 10px;
+    border: 1px solid #e8e2d9 !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+  }
+  .day-block:last-child { border-bottom: 1px solid #e8e2d9 !important; }
+
+  /* day header */
+  .day-hdr {
+    padding: 8px 14px !important;
+    background: #f3f0eb !important;
+    border-bottom: 2px solid #c8431a !important;
+  }
+  .day-num  { font-size: 20pt !important; color: #c8431a !important; font-weight: 900 !important; }
+  .day-date { font-size: 13pt !important; font-weight: 700 !important; color: #1c1814 !important; }
+  .day-goal-inp { font-size: 10pt !important; pointer-events: none; color: #5a534a !important; font-style: italic; }
+  .day-type-tag { font-size: 8pt !important; }
+  .hotel-inp { font-size: 9pt !important; pointer-events: none; color: #1a5a6a !important; }
+  .hotel-inp-wrap { border: 1px solid #b0d8e0 !important; background: #f0f8fa !important; }
+
+  /* timeline */
+  .tl-row { border-bottom: 1px solid #ede8e0 !important; break-inside: avoid; min-height: 32px !important; }
+  .tl-time {
+    font-size: 9pt !important;
+    padding: 6px 8px !important;
+    color: #7a7268 !important;
+    border-left: 1px solid #e0dbd4 !important;
+    font-weight: 600 !important;
+  }
+  .tl-cell { padding: 6px 10px !important; }
+  .cat-bar  { width: 4px !important; height: 18px !important; border-radius: 2px !important; }
+  .tl-text-inp {
+    font-size: 10.5pt !important;
+    pointer-events: none;
+    color: #1c1814 !important;
+  }
+
+  /* page break hints */
+  .day-block { page-break-inside: avoid !important; }
+  .day-num-col { border-left: 1px solid #e0dbd4 !important; }
+  .day-hdr-actions { display: none !important; }
+
+  /* no empty-state */
+  .empty-state { display: none !important; }
+}
+
+.pdf-only { display: none; }
+
+@media (max-width: 640px) {
+  .hdr { padding: 0 14px; }
+  .main { padding: 14px; }
+  .tabs { padding: 0 14px; }
+  .g2 { grid-template-columns: 1fr; }
+  .trips-grid { grid-template-columns: 1fr; }
+  .stats-row { flex-wrap: wrap; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-brand">
+    <h1>TRIP PLANNER</h1>
+    <span class="trip-name" id="h-trip" style="display:none;cursor:pointer" title="Click to edit trip name" onclick="editTripName()"></span>
+  </div>
+  <div class="hdr-right">
+    <span class="save-pill" id="save-pill"></span>
+    <button class="btn btn-dark btn-sm" onclick="manualSave()" title="Save now">💾 שמור</button>
+    <button class="btn btn-ghost btn-sm" onclick="backupJSON()" title="Backup all trips to JSON file" style="font-size:11px">⬇ Backup</button>
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer;font-size:11px" title="Restore from JSON backup">↑ Restore<input type="file" accept=".json" onchange="restoreJSON(event)" style="display:none"></label>
+    <button class="btn btn-ghost btn-sm" id="btn-new-trip" onclick="openNewTrip()"></button>
+    <button class="btn btn-ghost btn-sm" id="btn-theme" onclick="toggleTheme()" title="Light / Dark" style="font-size:14px;padding:6px 10px">🌙</button>
+    <button class="btn btn-ghost btn-sm" id="btn-lang" onclick="toggleLang()" style="font-family:var(--mono);letter-spacing:.05em;font-size:11px"></button>
+    <button class="btn btn-dark btn-sm" id="btn-export" style="display:none" onclick="doExport()">⬇ Excel</button>
+    <button class="btn btn-ghost btn-sm" id="btn-pdf" style="display:none" onclick="exportPDF()">⬇ PDF</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" data-tab="trips" onclick="showTab('trips')" id="tab-btn-trips"></button>
+  <button class="tab"        data-tab="schedule" onclick="showTab('schedule')" id="tab-btn-schedule"></button>
+  <button class="tab"        data-tab="logistics" onclick="showTab('logistics')" id="tab-btn-logistics"></button>
+  <button class="tab"        data-tab="gantt" onclick="showTab('gantt')" id="tab-btn-gantt"></button>
+  <button class="tab"        data-tab="cats" onclick="showTab('cats')" id="tab-btn-cats"></button>
+  <button class="tab" data-tab="checklist" onclick="showTab('checklist')" id="tab-btn-checklist"></button>
+  <button class="tab" data-tab="calendar" onclick="showTab('calendar')" id="tab-btn-calendar">📅 Calendar</button>
+  <button class="tab" data-tab="budget" onclick="showTab('budget')" id="tab-btn-budget">💰 Budget</button>
+</div>
+
+<div class="main">
+  <div class="section active" id="tab-trips">
+    <div id="trips-area"></div>
+    <div style="text-align:center"><button class="btn btn-dark" id="btn-create-trip-main" onclick="openNewTrip()"></button></div>
+  </div>
+
+  <div class="section" id="tab-schedule">
+    <div id="readiness-banner" style="display:none"></div>
+    <div id="readiness-dashboard" style="display:none;margin-bottom:20px"></div>
+    <div class="no-trip" id="no-sched" style="display:none"><span id="no-sched-txt"></span></div>
+    <div id="stats-area"></div>
+    <div class="schedule-wrap" id="days-area"></div>
+  </div>
+
+  <div class="section" id="tab-logistics">
+    <div class="no-trip" id="no-log" style="display:none"><span class="no-trip-txt"></span></div>
+    <div id="log-area">
+      <div class="log-block">
+        <div class="log-hdr" id="lhdr-flights">✈ </div>
+        <table class="log-table"><thead><tr>
+          <th id="fth-0"></th><th id="fth-1"></th><th id="fth-2"></th><th id="fth-3"></th><th id="fth-4"></th><th id="fth-5"></th><th id="fth-6"></th><th id="fth-7"></th><th></th>
+        </tr></thead><tbody id="flights-tbody"></tbody></table>
+        <button class="btn-add-row" id="btn-add-flight" onclick="addFlight()"></button>
+      </div>
+      <div class="log-block">
+        <div class="log-hdr" id="lhdr-transfers">🚗 </div>
+        <table class="log-table"><thead><tr>
+          <th id="tth-0"></th><th id="tth-1"></th><th id="tth-2"></th><th id="tth-3"></th><th id="tth-4"></th><th id="tth-5"></th><th id="tth-6"></th><th id="tth-7"></th><th></th>
+        </tr></thead><tbody id="transfers-tbody"></tbody></table>
+        <button class="btn-add-row" id="btn-add-transfer" onclick="addTransfer()"></button>
+      </div>
+      <div class="log-block">
+        <div class="log-hdr" id="lhdr-hotels">🏨 </div>
+        <table class="log-table"><thead><tr>
+          <th id="hth-0"></th><th id="hth-1"></th><th id="hth-2"></th><th id="hth-3"></th><th id="hth-4"></th><th id="hth-5"></th><th></th>
+        </tr></thead><tbody id="hotels-tbody"></tbody></table>
+        <button class="btn-add-row" id="btn-add-hotel" onclick="addHotel()"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="tab-checklist">
+    <div id="checklist-area"></div>
+  </div>
+
+  <div class="section" id="tab-calendar">
+    <div class="no-trip" id="no-cal" style="display:none"><span class="no-trip-txt"></span></div>
+    <div id="cal-area"></div>
+  </div>
+
+  <div class="section" id="tab-budget">
+    <div class="no-trip" id="no-budget" style="display:none"><span class="no-trip-txt"></span></div>
+    <div id="budget-area"></div>
+  </div>
+
+  <div class="section" id="tab-gantt">
+    <div class="no-trip" id="no-gantt" style="display:none"><span class="no-trip-txt"></span></div>
+    <div class="gantt-outer"><table class="gtable" id="gantt-tbl"></table></div>
+  </div>
+
+  <div class="section" id="tab-cats">
+    <div class="no-trip" id="no-cats" style="display:none"><span class="no-trip-txt"></span></div>
+    <div id="cats-area"></div>
+  </div>
+</div>
+
+<!-- MODAL: NEW TRIP -->
+<div class="overlay hidden" id="m-new">
+<div class="modal">
+  <button class="modal-x" onclick="cm('m-new')">✕</button>
+  <div class="modal-title" id="m-new-title"></div>
+  <div class="fr"><label id="lbl-trip-name"></label>
+    <input id="nt-name" placeholder="Vietnam May 2025 — Casla">
+  </div>
+  <div class="g2">
+    <div class="fr"><label id="lbl-site"></label>
+      <select id="nt-site">
+        <option value="casla">Casla Quartz</option>
+        <option value="fasa">Fasa</option>
+        <option value="newstone">Newstone</option>
+        <option value="squarstone">Squarstone</option>
+        <option value="other" id="site-other-opt"></option>
+      </select>
+    </div>
+    <div class="fr"><label id="lbl-dest"></label>
+      <select id="nt-dest">
+        <option>Vietnam 🇻🇳</option>
+        <option>China 🇨🇳</option>
+        <option>India 🇮🇳</option>
+        <option id="dest-other-opt"></option>
+      </select>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="fr"><label id="lbl-dep"></label><input type="date" id="nt-start"></div>
+    <div class="fr"><label id="lbl-ret"></label><input type="date" id="nt-end"></div>
+  </div>
+  <div class="fr"><label id="lbl-notes"></label>
+    <textarea id="nt-notes" rows="2" placeholder="" id="nt-notes-ph"></textarea>
+  </div>
+  <div class="divider" id="m-new-divider"></div>
+  <div class="fr"><label id="lbl-copy"></label>
+    <select id="nt-copy"><option value="" id="copy-def-opt"></option></select>
+  </div>
+  <div id="copy-hint" class="hint" style="display:none"></div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" id="m-new-cancel" onclick="cm('m-new')"></button>
+    <button class="btn btn-dark" id="m-new-confirm" onclick="doCreateTrip()"></button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: DAY SETUP -->
+<div class="overlay hidden" id="m-days">
+<div class="modal">
+  <button class="modal-x" onclick="cm('m-days')">✕</button>
+  <div class="modal-title" id="ds-title"></div>
+  <div id="ds-body"></div>
+  <div class="modal-footer">
+    <button class="btn btn-ghost" id="m-days-cancel" onclick="cm('m-days')"></button>
+    <button class="btn btn-dark" id="m-days-confirm" onclick="applyDays()"></button>
+  </div>
+</div>
+</div>
+
+<script>
+// ── STORAGE ──────────────────────────────────────────────────
+const SK = 'tripplanner_supplier_v8';
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(SK)) || {trips:[], activeId:null}; }
+  catch { return {trips:[], activeId:null}; }
+}
+let S = loadState();
+function manualSave() {
+  persist();
+  const p = document.getElementById('save-pill');
+  p.textContent = (curLang==='he' ? '✓ נשמר בהצלחה' : '✓ Saved');
+  p.classList.add('show');
+  setTimeout(()=>p.classList.remove('show'), 2000);
+}
+
+function persist() {
+  localStorage.setItem(SK, JSON.stringify(S));
+  const p = document.getElementById('save-pill');
+  p.classList.add('show');
+  clearTimeout(p._t);
+  p._t = setTimeout(() => p.classList.remove('show'), 1500);
+}
+function getActive() { return S.trips.find(t => t.id === S.activeId) || null; }
+
+// ── UTILS ─────────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cm(id) { document.getElementById(id).classList.add('hidden'); }
+function om(id) { document.getElementById(id).classList.remove('hidden'); }
+
+function mkDays(start, end) {
+  const out = []; let cur = new Date(start+'T00:00:00Z'), i = 1;
+  const EO = new Date(end+'T00:00:00Z');
+  const l = L();
+  while (cur <= EO) {
+    const iso = cur.toISOString().slice(0,10);
+    const dow = cur.getUTCDay();
+    const isSat = dow === 6;
+    out.push({ date:iso, dayNum:i, dayLabel: isSat ? l.sat_label : `${l.day_prefix} ${l.day_names[dow]}`, goal:'', hotel:'', dayType: isSat?'free':'work', entries:[] });
+    cur.setUTCDate(cur.getUTCDate()+1); i++;
+  }
+  return out;
+}
+function fmtDate(d) {
+  return new Date(d+'T00:00:00Z').toLocaleDateString(L().locale,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+}
+
+const SITE_C = {casla:'#b87333',fasa:'#1a4b8a',newstone:'#1a6b3a',squarstone:'#6b1a8a',other:'#555'};
+function DT_LABEL(k) { return L().dt_label[k] || k; }
+const DT_ICON  = {work:'🏭',flight:'✈',free:'🌿',travel:'🚗',empty:'·'};
+const DT_CLS   = {work:'dtt-work',flight:'dtt-flight',free:'dtt-free',travel:'dtt-travel',empty:'dtt-empty'};
+const DT_TYPES = ['work','flight','free','travel','empty'];
+
+function DEFAULT_CATS() { return JSON.parse(JSON.stringify(L().def_cats)); }
+
+function getCats(t) { return t.categories || DEFAULT_CATS(); }
+function catById(t, id) { return getCats(t).find(c=>c.id===id) || {name:id,emoji:'·',color:'#aaa'}; }
+function findCatId(cats, id) { return (cats.find(c=>c.id===id)||cats[0]).id; }
+
+function TPL(type, cats) {
+  const l = L();
+  const T = {
+    work: [
+      {time:'07:00', cat:findCatId(cats,'meal'),    text:l.tpl_breakfast},
+      {time:'08:00', cat:findCatId(cats,'work'),    text:l.tpl_work},
+      {time:'13:00', cat:findCatId(cats,'meal'),    text:l.tpl_lunch},
+      {time:'14:00', cat:findCatId(cats,'work'),    text:l.tpl_work},
+      {time:'17:00', cat:findCatId(cats,'qa'),      text:l.tpl_qa},
+      {time:'18:00', cat:findCatId(cats,'summary'), text:l.tpl_summary},
+      {time:'19:30', cat:findCatId(cats,'transfer'),text:l.tpl_hotel},
+      {time:'20:00', cat:findCatId(cats,'hotel'),    text:l.tpl_hotel_name},
+    ],
+    flight: [
+      {time:'', cat:findCatId(cats,'transfer'), text:l.tpl_transfer},
+      {time:'', cat:findCatId(cats,'flight'),   text:l.tpl_flight},
+    ],
+    free:   [{time:'', cat:findCatId(cats,'free'), text:l.tpl_free}],
+    travel: [
+      {time:'07:00', cat:findCatId(cats,'meal'),    text:l.tpl_breakfast},
+      {time:'08:00', cat:findCatId(cats,'transfer'),text:l.tpl_travel},
+      {time:'13:00', cat:findCatId(cats,'meal'),    text:l.tpl_lunch},
+    ],
+    empty: [],
+  };
+  return (T[type]||T.empty).map(e=>({...e,id:uid()}));
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  ({trips:renderTrips,schedule:renderSchedule,logistics:renderLogistics,gantt:renderGantt,cats:renderCats,calendar:renderCalendar,checklist:renderChecklist,budget:renderBudget}[name]||renderTrips)();
+}
+
+// ── UPDATE HEADER ─────────────────────────────────────────────
+function editTripName() {
+  const t = getActive(); if(!t) return;
+  const el = document.getElementById('h-trip');
+  // Replace span with an input inline
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = t.name;
+  input.style.cssText = 'font-size:12px;font-family:var(--sans);padding:3px 8px;border:1px solid var(--red);border-radius:4px;outline:none;background:var(--surface);color:var(--text);min-width:200px';
+  el.style.display = 'none';
+  el.parentNode.insertBefore(input, el.nextSibling);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const v = input.value.trim();
+    if (v) { t.name = v; persist(); }
+    input.remove();
+    updateHeader();
+    if (document.querySelector('.tab.active')?.getAttribute('data-tab')==='trips') renderTrips();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = t.name; input.blur(); }
+  });
+}
+
+function updateHeader() {
+  const t = getActive();
+  const el = document.getElementById('h-trip');
+  if (t) { el.textContent = `${t.name}  ✎`; el.style.display=''; }
+  else    { el.style.display='none'; }
+  document.getElementById('btn-export').style.display = t ? '' : 'none';
+  document.getElementById('btn-pdf').style.display = t ? '' : 'none';
+}
+
+// ── TRIPS ─────────────────────────────────────────────────────
+function editSite(tid) {
+  const t = S.trips.find(x=>x.id===tid); if(!t) return;
+  // Find the tag element for this trip and replace with inline input
+  const tagEl = document.querySelector(`.tcard-tag[onclick*="${tid}"]`);
+  if (!tagEl) return;
+  const col = SITE_C[t.site] || '#555';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = t.site || '';
+  input.style.cssText = 'font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 6px;border:1px solid var(--red);border-radius:3px;outline:none;width:90px;text-transform:uppercase;background:var(--surface);color:var(--text)';
+  input.onclick = (e) => e.stopPropagation();
+  tagEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const v = input.value.trim();
+    if (v) { t.site = v.toLowerCase(); persist(); }
+    renderTrips();
+    updateHeader();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { renderTrips(); }
+  });
+}
+
+function renderTrips() {
+  const area = document.getElementById('trips-area');
+  if (!S.trips.length) {
+    area.innerHTML = `<div class="empty-state"><div class="ico">✈</div><h2>${L().empty_title}</h2><p>${L().empty_sub}</p></div>`;
+    return;
+  }
+  area.innerHTML = `<div class="trips-grid">${S.trips.map(t=>{
+    const col = SITE_C[t.site]||'#555';
+    const act = t.id===S.activeId;
+    const l = L();
+    return `<div class="tcard${act?' active':''}" onclick="selectTrip('${t.id}')">
+      <div class="tcard-acts">
+        <button class="btn btn-xs btn-ghost" onclick="event.stopPropagation();cloneTrip('${t.id}')" title="${l.clone_title}">⎘</button>
+        <button class="btn btn-xs btn-danger" onclick="event.stopPropagation();deleteTrip('${t.id}')">✕</button>
+      </div>
+      <div class="tcard-tag" style="background:${col}18;color:${col};cursor:pointer" title="${l.edit_site_title||'Click to edit'}" onclick="event.stopPropagation();editSite('${t.id}')">${t.site.toUpperCase()} ✎</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div class="tcard-name" style="margin:0">${esc(t.name)}</div>
+        <span class="status-badge ${getTripStatus(t)}">${getTripStatus(t)==='ready'?'🟢 Ready':getTripStatus(t)==='planning'?'🟡 Planning':'🔴 Incomplete'}</span>
+      </div>
+      <div class="tcard-meta">${t.start} → ${t.end} · ${l.days_label(t.days.length)} · ${t.dest||''}</div>
+      ${t.notes?`<div class="tcard-note">${esc(t.notes)}</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function selectTrip(id) {
+  S.activeId = id; persist(); updateHeader(); renderTrips();
+}
+function cloneTrip(id) {
+  const src = S.trips.find(t=>t.id===id); if(!src)return;
+  const c = JSON.parse(JSON.stringify(src));
+  c.id = uid(); c.name += L().copy_suffix;
+  S.trips.push(c); persist(); renderTrips();
+}
+function deleteTrip(id) {
+  
+  S.trips = S.trips.filter(t=>t.id!==id);
+  if(S.activeId===id) S.activeId=null;
+  persist(); updateHeader(); renderTrips();
+}
+
+// ── NEW TRIP MODAL ────────────────────────────────────────────
+function openNewTrip() {
+  const sel = document.getElementById('nt-copy');
+  sel.innerHTML = `<option value="">${L().m_new_copy_def}</option>` +
+    S.trips.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  sel.onchange = () => {
+    document.getElementById('copy-hint').style.display = sel.value ? '' : 'none';
+  };
+  document.getElementById('copy-hint').style.display = 'none';
+  ['nt-name','nt-notes'].forEach(id=>document.getElementById(id).value='');
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('nt-start').value = today;
+  document.getElementById('nt-end').value   = today;
+  om('m-new');
+}
+
+// ── PENDING TRIP (day wizard) ─────────────────────────────────
+let _pending = null;
+let _dsSetup = {};
+
+function doCreateTrip() {
+  const name     = document.getElementById('nt-name').value.trim();
+  const site     = document.getElementById('nt-site').value;
+  const dest     = document.getElementById('nt-dest').value;
+  const start    = document.getElementById('nt-start').value;
+  const end      = document.getElementById('nt-end').value;
+  const notes    = document.getElementById('nt-notes').value.trim();
+  const copyFrom = document.getElementById('nt-copy').value;
+
+  if (!name) { alert(L().alert_no_name); return; }
+  if (!start||!end||start>end) { alert(L().alert_bad_dates); return; }
+
+  cm('m-new');
+
+  // ── COPY PATH ──
+  if (copyFrom) {
+    const src = S.trips.find(t=>t.id===copyFrom);
+    if (src) {
+      const newDays = mkDays(start, end);
+      newDays.forEach((d,i) => {
+        if (i < src.days.length) {
+          d.goal    = src.days[i].goal;
+          d.dayType = src.days[i].dayType;
+          d.entries = JSON.parse(JSON.stringify(src.days[i].entries));
+        }
+      });
+      const trip = {
+        id: uid(), name, site, dest, start, end, notes,
+        days: newDays,
+        categories: JSON.parse(JSON.stringify(src.categories || DEFAULT_CATS)),
+        flights:    JSON.parse(JSON.stringify(src.flights    || [])),
+        transfers:  JSON.parse(JSON.stringify(src.transfers  || [])),
+      };
+      S.trips.push(trip);
+      S.activeId = trip.id;
+      persist(); updateHeader(); renderTrips(); showTab('schedule');
+      return;   // ← this was the missing return
+    }
+  }
+
+  // ── NEW PATH → day wizard ──
+  const cats = DEFAULT_CATS();
+  _pending = { id:uid(), name, site, dest, start, end, notes,
+               days: mkDays(start,end), categories:cats, flights:[], transfers:[] };
+  openDayWizard();
+}
+
+// ── DAY WIZARD ────────────────────────────────────────────────
+function openDayWizard() {
+  _dsSetup = {};
+  document.getElementById('ds-title').textContent = L().m_days_title(_pending.days.length);
+  const quickBtns = DT_TYPES.map(t=>
+    `<button class="btn btn-ghost btn-sm" onclick="fillAll('${t}')">${DT_ICON[t]} ${L().dt_label[t]}</button>`
+  ).join('');
+
+  let html = `<div style="font-size:11px;color:var(--text2);margin-bottom:10px">${L().m_days_inst}</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--text2);align-self:center">${L().m_days_fill}</span>${quickBtns}
+    </div><div id="ds-rows">`;
+
+  _pending.days.forEach((d,i) => {
+    _dsSetup[i] = (d.dayType==='free') ? 'free' : 'work';
+    html += `<div class="ds-row" id="dsr-${i}">
+      <span class="ds-daynum">${L().day_prefix} ${d.dayNum}</span>
+      <span class="ds-daylabel">${d.dayLabel}</span>
+      <span class="ds-date">${d.date}</span>
+      <div class="ds-btns">
+        ${DT_TYPES.map(t=>`<button class="btn btn-xs ${_dsSetup[i]===t?'btn-dark':'btn-ghost'}" id="dsb-${i}-${t}" onclick="setDT(${i},'${t}')" title="${L().dt_label[t]}">${DT_ICON[t]}</button>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('ds-body').innerHTML = html;
+  om('m-days');
+}
+
+function setDT(i, type) {
+  _dsSetup[i] = type;
+  DT_TYPES.forEach(t => {
+    const b = document.getElementById(`dsb-${i}-${t}`);
+    if(b) b.className = `btn btn-xs ${t===type?'btn-dark':'btn-ghost'}`;
+  });
+}
+
+function fillAll(type) {
+  if(!_pending) return;
+  _pending.days.forEach((_,i) => setDT(i, type));
+}
+
+function applyDays() {
+  if(!_pending) return;
+  const cats = _pending.categories;
+  _pending.days.forEach((d,i) => {
+    const t = _dsSetup[i] || 'empty';
+    d.dayType = t;
+    d.entries = TPL(t, cats);
+  });
+  S.trips.push(_pending);
+  S.activeId = _pending.id;
+  persist(); cm('m-days'); _pending=null;
+  updateHeader(); renderTrips(); showTab('schedule');
+}
+
+// ── SCHEDULE ──────────────────────────────────────────────────
+// ── DRAG & DROP ───────────────────────────────────────────────
+let _drag = null; // {di, ei}
+
+function dragStart(e, di, ei) {
+  _drag = {di, ei};
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  // needed for Firefox
+  try { e.dataTransfer.setData('text/plain', di+':'+ei); } catch(_){}
+}
+
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over-top,.drag-over-bot').forEach(el=>el.classList.remove('drag-over-top','drag-over-bot'));
+  document.querySelectorAll('.timeline.drag-target').forEach(el=>el.classList.remove('drag-target'));
+  _drag = null;
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  // visual hint on the row being hovered
+  const row = e.target.closest('.tl-row');
+  document.querySelectorAll('.drag-over-top,.drag-over-bot').forEach(el=>el.classList.remove('drag-over-top','drag-over-bot'));
+  if (row) {
+    const rect = row.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height/2;
+    row.classList.add(after ? 'drag-over-bot' : 'drag-over-top');
+  }
+}
+
+function dropRow(e, di, ei) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!_drag) return;
+  const t = getActive(); if(!t) return;
+
+  const row = e.target.closest('.tl-row');
+  let targetIdx = ei;
+  if (row) {
+    const rect = row.getBoundingClientRect();
+    const after = (e.clientY - rect.top) > rect.height/2;
+    if (after) targetIdx = ei + 1;
+  }
+  moveEntry(t, _drag.di, _drag.ei, di, targetIdx);
+}
+
+function dropDay(e, di) {
+  e.preventDefault();
+  if (!_drag) return;
+  // only handle if not already handled by a row
+  if (e.target.closest('.tl-row')) return;
+  const t = getActive(); if(!t) return;
+  const targetIdx = t.days[di].entries.length; // end of day
+  moveEntry(t, _drag.di, _drag.ei, di, targetIdx);
+}
+
+function timeToMin(s) {
+  if (!s || !/^\d{1,2}:\d{2}$/.test(s)) return null;
+  const [h,m] = s.split(':').map(Number);
+  return h*60+m;
+}
+function minToTime(min) {
+  if (min < 0) min = 0;
+  if (min > 23*60+59) min = 23*60+59;
+  const h = Math.floor(min/60), m = min%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+
+function moveEntry(t, fromDi, fromEi, toDi, toIdx) {
+  const entry = t.days[fromDi].entries[fromEi];
+  if (!entry) return;
+  // Remove from source
+  t.days[fromDi].entries.splice(fromEi, 1);
+  // Adjust target index if moving within same day and after the removed position
+  if (fromDi === toDi && fromEi < toIdx) toIdx--;
+  // Clamp
+  if (toIdx < 0) toIdx = 0;
+  if (toIdx > t.days[toDi].entries.length) toIdx = t.days[toDi].entries.length;
+
+  // ── Compute new time based on neighbours at the drop position ──
+  const list = t.days[toDi].entries;
+  const beforeEntry = list[toIdx-1];           // entry that will sit above
+  const afterEntry  = list[toIdx];             // entry that will sit below
+  const bMin = beforeEntry ? timeToMin(beforeEntry.time) : null;
+  const aMin = afterEntry  ? timeToMin(afterEntry.time)  : null;
+
+  let newTime = entry.time; // fallback: keep original
+  if (bMin !== null && aMin !== null) {
+    // midpoint between the two neighbours
+    newTime = minToTime(Math.round((bMin + aMin) / 2));
+  } else if (bMin !== null && aMin === null) {
+    // dropped at end → 1 hour after the last timed entry
+    newTime = minToTime(bMin + 60);
+  } else if (bMin === null && aMin !== null) {
+    // dropped at start → 1 hour before the first timed entry
+    newTime = minToTime(aMin - 60);
+  }
+  entry.time = newTime;
+
+  list.splice(toIdx, 0, entry);
+
+  // keep the day sorted by time (entries without time stay where placed)
+  list.sort((x,y) => {
+    const xm = timeToMin(x.time), ym = timeToMin(y.time);
+    if (xm === null) return 0;
+    if (ym === null) return 0;
+    return xm - ym;
+  });
+
+  persist();
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const t = getActive();
+  document.getElementById('no-sched').style.display   = t ? 'none' : '';
+  document.getElementById('stats-area').style.display = t ? '' : 'none';
+  document.getElementById('days-area').style.display  = t ? '' : 'none';
+  if (!t) return;
+
+  // stats
+  const wdays = t.days.filter(d=>d.entries.some(e=>e.cat==='work'||e.cat==='qa')).length;
+  const sl = L();
+  document.getElementById('stats-area').innerHTML = `<div class="stats-row">
+    <div class="stat"><div class="stat-label">${sl.stat_days}</div><div class="stat-val">${t.days.length}</div></div>
+    <div class="stat"><div class="stat-label">${sl.stat_work}</div><div class="stat-val">${wdays}</div></div>
+    <div class="stat"><div class="stat-label">${sl.stat_flights}</div><div class="stat-val">${(t.flights||[]).length}</div></div>
+    <div class="stat"><div class="stat-label">${sl.stat_transfers}</div><div class="stat-val">${(t.transfers||[]).length}</div></div>
+    <div class="stat"><div class="stat-label">${sl.stat_dest}</div><div class="stat-val" style="font-size:13px">${esc(t.dest||'—')}</div></div>
+  </div>`;
+
+  const area = document.getElementById('days-area');
+  area.innerHTML = '';
+  const cats = getCats(t);
+
+  t.days.forEach((day, di) => {
+    const block = document.createElement('div');
+    block.className = 'day-block';
+
+    const dl = L();
+    const entriesHTML = (day.entries||[]).map((e, ei) => {
+      const cat = catById(t, e.cat);
+      const catSel = cats.map(c=>`<option value="${c.id}"${c.id===e.cat?' selected':''}>${c.emoji} ${c.name}</option>`).join('');
+      // compute a very faint bg from cat color
+      const hex = cat.color.replace('#','');
+      const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+      const rowBg = 'rgba('+r+','+g+','+b+',0.06)';
+      return `<div class="tl-row" draggable="true"
+        data-di="${di}" data-ei="${ei}"
+        ondragstart="dragStart(event,${di},${ei})"
+        ondragend="dragEnd(event)"
+        ondragover="dragOver(event)"
+        ondrop="dropRow(event,${di},${ei})"
+        style="background:${rowBg}">
+        <div class="tl-time">${esc(e.time||'')}</div>
+        <div class="tl-cell">
+          <span class="drag-handle" title="גרור">⠿</span>
+          <div class="cat-bar" style="background:${cat.color}" title="${esc(cat.name)}"></div>
+          <input class="tl-text-inp" value="${esc(e.text)}" placeholder="${esc(cat.name)}..."
+            onchange="upEntry('${t.id}',${di},${ei},'text',this.value)">
+          <div class="tl-acts">
+            <select class="btn btn-xs btn-ghost" style="padding:2px 4px"
+              onchange="upEntry('${t.id}',${di},${ei},'cat',this.value)">${catSel}</select>
+            <input type="time" class="btn btn-xs btn-ghost" style="width:68px;font-family:var(--mono);font-size:10px"
+              value="${esc(e.time||'')}"
+              onchange="upEntry('${t.id}',${di},${ei},'time',this.value)">
+            <button class="btn btn-xs btn-danger" onclick="delEntry('${t.id}',${di},${ei})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('') || '<div style="padding:8px 14px;font-size:11px;color:var(--text3)">'+dl.no_entries+'</div>';
+
+    const catOpts = cats.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+    const dtCls = DT_CLS[day.dayType||'work'];
+
+    block.innerHTML = `
+      <div class="day-hdr">
+        <div class="day-hdr-actions">
+          <button class="day-act-btn" title="Add day before" onclick="event.stopPropagation();addDayBefore('${t.id}',${di})">↑+</button>
+          <button class="day-act-btn" title="Add day after"  onclick="event.stopPropagation();addDayAfter('${t.id}',${di})">↓+</button>
+          <button class="day-act-btn danger" title="Remove day" onclick="event.stopPropagation();removeDay('${t.id}',${di})">−</button>
+        </div>
+        <div class="day-num-col">
+          <div class="day-num">${String(day.dayNum).padStart(2,'0')}</div>
+        </div>
+        <div class="day-info-col">
+          <div class="day-date">${day.dayLabel} · ${fmtDate(day.date)}</div>
+          <input class="day-goal-inp" placeholder="${dl.goal_ph}"
+            value="${esc(day.goal)}"
+            onchange="upGoal('${t.id}',${di},this.value)">
+        </div>
+        <div class="day-type-col">
+          <div class="hotel-inp-wrap" title="Hotel">
+            <span class="hotel-ico">🏨</span>
+            <input class="hotel-inp" placeholder="${dl.hotel_ph||'Hotel...'}"
+              value="${esc(day.hotel||'')}"
+              onchange="upHotel('${t.id}',${di},this.value)"
+              onclick="event.stopPropagation()">
+          </div>
+          <select class="day-type-tag ${dtCls}" style="cursor:pointer;border:none;outline:none;font-family:var(--mono);font-weight:500;letter-spacing:.02em;padding:3px 6px;border-radius:3px;appearance:none;-webkit-appearance:none;background-image:url(\'data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"5\" viewBox=\"0 0 8 5\"><path fill=\"%23666\" d=\"M0 0l4 5 4-5z\"/></svg>\');background-repeat:no-repeat;background-position:left 4px center;padding-left:14px"
+            onchange="upDayType('${t.id}',${di},this.value);this.className='day-type-tag '+DT_CLS[this.value]"
+            onclick="event.stopPropagation()">
+            ${DT_TYPES.map(tp=>`<option value="${tp}"${tp===(day.dayType||'work')?` selected`:''} >${DT_ICON[tp]} ${dl.dt_label[tp]}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="timeline" data-di="${di}" ondragover="dragOver(event)" ondrop="dropDay(event,${di})">${entriesHTML}</div>
+      <div class="add-row">
+        <div class="add-row-time">
+          <input type="time" class="add-inp time-inp" id="at-${di}" value="08:00">
+        </div>
+        <div class="add-row-cell">
+          <select class="add-inp" id="ac-${di}">${catOpts}</select>
+          <input class="add-inp add-inp-text" id="atx-${di}" placeholder="${dl.act_ph}" dir="${dl.dir}"
+            onkeydown="if(event.key==='Enter'){addEntry('${t.id}',${di});event.preventDefault()}">
+          <button class="btn btn-dark btn-sm" onclick="addEntry('${t.id}',${di})">${dl.btn_add_entry}</button>
+        </div>
+      </div>`;
+    area.appendChild(block);
+  });
+}
+
+function upEntry(tid,di,ei,f,v) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  t.days[di].entries[ei][f]=v; persist();
+  if(f!=='text') renderSchedule();
+}
+function delEntry(tid,di,ei) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  t.days[di].entries.splice(ei,1); persist(); renderSchedule();
+}
+function addEntry(tid,di) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  const time=document.getElementById(`at-${di}`).value;
+  const cat =document.getElementById(`ac-${di}`).value;
+  const text=document.getElementById(`atx-${di}`).value.trim();
+  if(!text) return;
+  t.days[di].entries.push({id:uid(),time,cat,text});
+  t.days[di].entries.sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  document.getElementById(`atx-${di}`).value='';
+  persist(); renderSchedule();
+}
+function upDayType(tid,di,v) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  t.days[di].dayType=v; persist();
+}
+
+function resequenceDays(t) {
+  const l = L();
+
+  // Find an anchor: first day that has a valid date
+  let anchorIdx = t.days.findIndex(d => d.date && !isNaN(new Date(d.date+'T00:00:00Z').getTime()));
+  if (anchorIdx === -1) {
+    // no valid date at all — use today as fallback
+    t.days[0].date = new Date().toISOString().slice(0,10);
+    anchorIdx = 0;
+  }
+
+  // Compute day[0] date by walking back from the anchor
+  const anchor = new Date(t.days[anchorIdx].date+'T00:00:00Z');
+  const day0 = new Date(anchor);
+  day0.setUTCDate(day0.getUTCDate() - anchorIdx);
+
+  // Now sequence every day from day0
+  for (let i = 0; i < t.days.length; i++) {
+    const cur = new Date(day0);
+    cur.setUTCDate(cur.getUTCDate() + i);
+    const iso = cur.toISOString().slice(0,10);
+    const dw  = cur.getUTCDay();
+    t.days[i].date     = iso;
+    t.days[i].dayNum   = i+1;
+    t.days[i].dayLabel = dw===6 ? l.sat_label : `${l.day_prefix} ${l.day_names[dw]}`;
+  }
+
+  t.start = t.days[0].date;
+  t.end   = t.days[t.days.length-1].date;
+}
+
+function addDayBefore(tid, di) {
+  const t=S.trips.find(x=>x.id===tid); if(!t)return;
+  const newDay = { id:uid(), date:'', dayNum:0, dayLabel:'', goal:'', hotel:'', dayType:'work', entries:[] };
+  t.days.splice(di, 0, newDay);
+  resequenceDays(t);
+  persist(); renderSchedule();
+}
+
+function addDayAfter(tid, di) {
+  const t=S.trips.find(x=>x.id===tid); if(!t)return;
+  const l = L();
+
+  // 1. Insert new blank day with date = di's date + 1
+  const base = new Date(t.days[di].date+'T00:00:00Z');
+  base.setUTCDate(base.getUTCDate()+1);
+  const newDate = base.toISOString().slice(0,10);
+  const dow = base.getUTCDay();
+  const isSat = dow===6;
+  const newDay = {
+    id: uid(),
+    date: newDate,
+    dayNum: 0,
+    dayLabel: isSat ? l.sat_label : `${l.day_prefix} ${l.day_names[dow]}`,
+    goal: '', hotel: '', dayType: isSat?'free':'work', entries: []
+  };
+  t.days.splice(di+1, 0, newDay);
+  resequenceDays(t);
+  persist(); renderSchedule();
+}
+
+function removeDay(tid, di) {
+  const t=S.trips.find(x=>x.id===tid); if(!t)return;
+  if(t.days.length<=1) { alert('Cannot remove the only day'); return; }
+  // confirm skipped — file:// protocol blocks dialogs in Chrome
+  const l = L();
+  t.days.splice(di, 1);
+  resequenceDays(t);
+  persist(); renderSchedule();
+}
+
+function upHotel(tid,di,v) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  t.days[di].hotel=v; persist();
+}
+
+function upGoal(tid,di,v) {
+  const t=S.trips.find(x=>x.id===tid);if(!t)return;
+  t.days[di].goal=v; persist();
+}
+
+// ── LOGISTICS ─────────────────────────────────────────────────
+function renderLogistics() {
+  const t = getActive();
+  document.getElementById('no-log').style.display  = t?'none':'';
+  document.getElementById('log-area').style.display = t?'':'none';
+  if(!t) return;
+  renderF(t); renderTr(t); renderH(t);
+}
+function getAutoFlights(t) {
+  // pull flight entries from schedule
+  const rows = [];
+  (t.days||[]).forEach(d => {
+    (d.entries||[]).forEach(e => {
+      if (e.cat === 'flight') {
+        rows.push({ date: d.date, dayNum: d.dayNum, time: e.time||'', text: e.text||'' });
+      }
+    });
+  });
+  return rows;
+}
+
+function renderF(t) {
+  t=t||getActive();if(!t)return;
+  const autoRows = getAutoFlights(t);
+  const l = L();
+
+  // auto section
+  const autoHTML = autoRows.length ? autoRows.map(r => `<tr class="auto-row">
+    <td>${esc(r.date)}</td>
+    <td colspan="2"><span class="auto-link">Day ${r.dayNum}</span>${esc(r.text)}</td>
+    <td></td>
+    <td>${esc(r.time)}</td>
+    <td></td><td></td>
+    <td></td>
+    <td></td>
+  </tr>`).join('') : `<tr><td colspan="9" style="padding:10px 13px;font-size:11px;color:var(--text3);font-style:italic">${l.no_flight_auto||'No flights in schedule yet'}</td></tr>`;
+
+  // manual section
+  const manualHTML = (t.flights||[]).map((f,i)=>`<tr>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'date',this.innerText)">${esc(f.date)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'from',this.innerText)">${esc(f.from)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'to',this.innerText)">${esc(f.to)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'carrier',this.innerText)">${esc(f.carrier)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'dep',this.innerText)">${esc(f.dep)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'arr',this.innerText)">${esc(f.arr)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('flights',${i},'flightNum',this.innerText)">${esc(f.flightNum)}</span></td>
+    <td><span class="ec" contenteditable style="min-width:60px" onblur="upLog('flights',${i},'notes',this.innerText)">${esc(f.notes)}</span></td>
+    <td><button class="btn btn-xs btn-danger" onclick="delLog('flights',${i})">✕</button></td>
+  </tr>`).join('');
+
+  const tbody = document.getElementById('flights-tbody');
+  tbody.innerHTML =
+    `<tr class="log-auto-section"><td colspan="9" style="padding:0">
+      <div class="log-auto-hdr">
+        <span class="log-auto-label">↑ From schedule (auto)</span>
+        <button class="btn btn-xs btn-ghost" onclick="renderLogistics()" style="font-size:9px">↺ Sync</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${autoHTML}</table>
+    </td></tr>` +
+    `<tr><td colspan="9" style="padding:0"><span class="log-manual-label">Manual entries</span></td></tr>` +
+    manualHTML;
+}
+function getAutoTransfers(t) {
+  const rows = [];
+  (t.days||[]).forEach(d => {
+    (d.entries||[]).forEach(e => {
+      if (e.cat === 'transfer') {
+        rows.push({ date: d.date, dayNum: d.dayNum, time: e.time||'', text: e.text||'' });
+      }
+    });
+  });
+  return rows;
+}
+
+function renderTr(t) {
+  t=t||getActive();if(!t)return;
+  const autoRows = getAutoTransfers(t);
+  const l = L();
+
+  const autoHTML = autoRows.length ? autoRows.map(r => `<tr class="auto-row">
+    <td>${esc(r.date)}</td>
+    <td>${esc(r.time)}</td>
+    <td colspan="2"><span class="auto-link">Day ${r.dayNum}</span>${esc(r.text)}</td>
+    <td></td><td></td><td></td><td></td>
+    <td></td>
+  </tr>`).join('') : `<tr><td colspan="9" style="padding:10px 13px;font-size:11px;color:var(--text3);font-style:italic">${l.no_transfer_auto||'No transfers in schedule yet'}</td></tr>`;
+
+  const manualHTML = (t.transfers||[]).map((r,i)=>`<tr>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'date',this.innerText)">${esc(r.date)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'time',this.innerText)">${esc(r.time)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'from',this.innerText)">${esc(r.from)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'to',this.innerText)">${esc(r.to)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'type',this.innerText)">${esc(r.type)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'vendor',this.innerText)">${esc(r.vendor)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('transfers',${i},'cost',this.innerText)">${esc(r.cost)}</span></td>
+    <td><span class="ec" contenteditable style="min-width:60px" onblur="upLog('transfers',${i},'notes',this.innerText)">${esc(r.notes)}</span></td>
+    <td><button class="btn btn-xs btn-danger" onclick="delLog('transfers',${i})">✕</button></td>
+  </tr>`).join('');
+
+  const tbody = document.getElementById('transfers-tbody');
+  tbody.innerHTML =
+    `<tr class="log-auto-section"><td colspan="9" style="padding:0">
+      <div class="log-auto-hdr">
+        <span class="log-auto-label">↑ From schedule (auto)</span>
+        <button class="btn btn-xs btn-ghost" onclick="renderLogistics()" style="font-size:9px">↺ Sync</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${autoHTML}</table>
+    </td></tr>` +
+    `<tr><td colspan="9" style="padding:0"><span class="log-manual-label">Manual entries</span></td></tr>` +
+    manualHTML;
+}
+function getAutoHotels(t) {
+  const rows = [];
+  (t.days||[]).forEach(d => {
+    (d.entries||[]).forEach(e => {
+      if (e.cat === 'hotel') {
+        rows.push({ date: d.date, dayNum: d.dayNum, time: e.time||'', text: e.text||'' });
+      }
+    });
+  });
+  return rows;
+}
+
+function buildHotelPeriods(t) {
+  // group consecutive days with same hotel name into stay periods
+  const periods = [];
+  let cur = null;
+  (t.days||[]).forEach(d => {
+    const h = (d.hotel||'').trim();
+    if (!h) { cur = null; return; }
+    if (cur && cur.name === h) {
+      cur.checkout = d.date;
+      cur.nights++;
+    } else {
+      cur = { name:h, checkin:d.date, checkout:d.date, nights:1 };
+      periods.push(cur);
+    }
+  });
+  return periods;
+}
+
+function renderH(t) {
+  t=t||getActive();if(!t)return;
+  const periods = buildHotelPeriods(t);
+  const l = L();
+
+  const autoHTML = periods.length ? periods.map(p => `<tr class="auto-row">
+    <td>${esc(p.checkin)}</td>
+    <td>${esc(p.checkout)}</td>
+    <td colspan="2" style="font-weight:500;color:var(--text)">${esc(p.name)}</td>
+    <td style="font-family:var(--mono);font-size:11px;color:var(--text2)">${p.nights} night${p.nights>1?'s':''}</td>
+    <td></td>
+    <td></td>
+  </tr>`).join('') : `<tr><td colspan="7" style="padding:10px 13px;font-size:11px;color:var(--text3);font-style:italic">${l.no_hotel_auto||'Fill hotel name in each day header'}</td></tr>`;
+
+  const manualHTML = (t.hotels||[]).map((h,i)=>`<tr>
+    <td><span class="ec" contenteditable onblur="upLog('hotels',${i},'checkin',this.innerText)">${esc(h.checkin)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('hotels',${i},'checkout',this.innerText)">${esc(h.checkout)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('hotels',${i},'name',this.innerText)">${esc(h.name)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('hotels',${i},'address',this.innerText)">${esc(h.address)}</span></td>
+    <td><span class="ec" contenteditable onblur="upLog('hotels',${i},'confirmation',this.innerText)">${esc(h.confirmation)}</span></td>
+    <td><span class="ec" contenteditable style="min-width:60px" onblur="upLog('hotels',${i},'notes',this.innerText)">${esc(h.notes)}</span></td>
+    <td><button class="btn btn-xs btn-danger" onclick="delLog('hotels',${i})">✕</button></td>
+  </tr>`).join('');
+
+  const tbody = document.getElementById('hotels-tbody');
+  if(!tbody) return;
+  tbody.innerHTML =
+    `<tr class="log-auto-section"><td colspan="7" style="padding:0">
+      <div class="log-auto-hdr">
+        <span class="log-auto-label">↑ From schedule (auto)</span>
+        <button class="btn btn-xs btn-ghost" onclick="renderLogistics()" style="font-size:9px">↺ Sync</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse">${autoHTML}</table>
+    </td></tr>` +
+    `<tr><td colspan="7" style="padding:0"><span class="log-manual-label">Manual entries</span></td></tr>` +
+    manualHTML;
+}
+
+function addHotel() {
+  const t=getActive();if(!t)return;
+  if(!t.hotels) t.hotels=[];
+  t.hotels.push({checkin:'',checkout:'',name:'',address:'',confirmation:'',notes:''});
+  persist(); renderH();
+}
+
+function upLog(arr,i,f,v) { const t=getActive();if(!t)return; t[arr][i][f]=v.trim(); persist(); }
+function delLog(arr,i) {
+  const t=getActive();if(!t)return; t[arr].splice(i,1); persist();
+  if(arr==='flights') renderF();
+  else if(arr==='transfers') renderTr();
+  else renderH();
+}
+function addFlight() {
+  const t=getActive();if(!t)return;
+  t.flights.push({date:'',from:'TLV',to:'',carrier:'',dep:'',arr:'',flightNum:'',notes:''});
+  persist(); renderF();
+}
+function addTransfer() {
+  const t=getActive();if(!t)return;
+  t.transfers.push({date:'',time:'',from:'',to:'',type: curLang==='en'?'Taxi':'מונית',vendor:'',cost:'',notes:''});
+  persist(); renderTr();
+}
+
+// ── GANTT (logistics only) ────────────────────────────────────
+function renderGantt() {
+  const t = getActive();
+  document.getElementById('no-gantt').style.display = t?'none':'';
+  const tbl = document.getElementById('gantt-tbl');
+  if(!t){tbl.innerHTML='';return;}
+
+  let html = '<thead><tr><th class="gl">'+(curLang==='en'?'Activity':'פעילות')+'</th>';
+  t.days.forEach(d => html+=`<th title="${esc(d.goal)}">${d.dayLabel}<br><span style="font-size:8px;opacity:.6">${L().day_prefix} ${d.dayNum}</span></th>`);
+  html+='</tr></thead><tbody>';
+
+  // Logistics section
+  html+=`<tr class="g-sec"><td colspan="${t.days.length+1}">${L().g_logistics}</td></tr>`;
+  const logCats = getCats(t).filter(c=>c.id==='flight'||c.id==='transfer');
+  logCats.forEach(cat => {
+    html+=`<tr><td class="gl"><div class="cat-bar" style="background:${cat.color};width:3px;height:16px;border-radius:2px"></div>${esc(cat.emoji)} ${esc(cat.name)}</td>`;
+    t.days.forEach(d=>{
+      const has=d.entries.some(e=>e.cat===cat.id);
+      html+=`<td>${has?`<div class="gbar" style="background:${cat.color}">✓</div>`:''}</td>`;
+    });
+    html+='</tr>';
+  });
+
+  // Day types section
+  html+=`<tr class="g-sec"><td colspan="${t.days.length+1}">${L().g_day_type}</td></tr>`;
+  html+=`<tr><td class="gl">${L().g_day_label}</td>`;
+  const DTC = {work:'#2a4a8a',flight:'#c8431a',free:'#2d6a2d',travel:'#8a6a1a',empty:'#ccc'};
+  t.days.forEach(d=>{
+    const dt=d.dayType||'work';
+    html+=`<td title="${DT_LABEL(dt)}"><div class="gbar" style="background:${DTC[dt]};font-size:9px">${DT_ICON[dt]}</div></td>`;
+  });
+  html+='</tr>';
+
+  // Hotels row
+  const hasAnyHotel = t.days.some(d=>(d.hotel||'').trim());
+  if(hasAnyHotel) {
+    html+=`<tr class="g-sec"><td colspan="${t.days.length+1}">🏨 HOTELS</td></tr>`;
+    html+=`<tr><td class="gl">🏨 Hotel</td>`;
+    let lastHotel = '';
+    t.days.forEach(d=>{
+      const h = (d.hotel||'').trim();
+      const changed = h && h !== lastHotel;
+      if(changed) lastHotel = h;
+      html+=`<td title="${esc(h)}">${h ? `<div class="gbar" style="background:#1a5a6a;font-size:8px;overflow:hidden">${changed?esc(h):''}</div>` : ''}</td>`;
+    });
+    html+='</tr>';
+  }
+
+  // Models (auto-detect 4-digit)
+  const models = [...new Set(t.days.flatMap(d=>d.entries.flatMap(e=>(e.text||'').match(/\b\d{4}\b/g)||[])))].sort();
+  if(models.length) {
+    html+=`<tr class="g-sec"><td colspan="${t.days.length+1}">${L().g_models}</td></tr>`;
+    models.forEach(m=>{
+      html+=`<tr><td class="gl">◆ ${m}</td>`;
+      t.days.forEach(d=>{
+        const has=d.entries.some(e=>(e.text||'').includes(m));
+        html+=`<td>${has?`<div class="gbar" style="background:#6b3d8a">${m}</div>`:''}</td>`;
+      });
+      html+='</tr>';
+    });
+  }
+
+  tbl.innerHTML=html+'</tbody>';
+}
+
+// ── CATEGORIES ────────────────────────────────────────────────
+function renderCats() {
+  const t = getActive();
+  document.getElementById('no-cats').style.display = t?'none':'';
+  const area = document.getElementById('cats-area');
+  if(!t){area.innerHTML='';return;}
+  const cats = getCats(t);
+  area.innerHTML = `<div style="max-width:480px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">${L().cats_title(esc(t.name))}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px">${L().cats_note}</div>
+    <div>${cats.map((c,i)=>`<div class="cat-item">
+      <input type="color" class="cat-color" value="${c.color}" onchange="upCat(${i},'color',this.value)">
+      <input class="cat-emoji" value="${esc(c.emoji)}" onchange="upCat(${i},'emoji',this.value)" maxlength="2">
+      <input class="cat-name" value="${esc(c.name)}" onchange="upCat(${i},'name',this.value)" placeholder="${L().cat_ph}">
+      <button class="btn btn-xs btn-danger" onclick="delCat(${i})">✕</button>
+    </div>`).join('')}</div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="addCat()">${L().btn_add_cat}</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetCats()">${L().btn_reset_cats}</button>
+    </div>
+  </div>`;
+}
+function upCat(i,f,v) { const t=getActive();if(!t)return; if(!t.categories)t.categories=JSON.parse(JSON.stringify(DEFAULT_CATS)); t.categories[i][f]=v; persist(); }
+function delCat(i) {
+  const t=getActive();if(!t)return;
+  t.categories.splice(i,1); persist(); renderCats();
+}
+function addCat() {
+  const t=getActive();if(!t)return;
+  if(!t.categories)t.categories=JSON.parse(JSON.stringify(DEFAULT_CATS));
+  t.categories.push({id:uid(),name:curLang==='en'?'Category':'קטגוריה',emoji:'•',color:'#888'});
+  persist(); renderCats();
+}
+function resetCats() {
+  const t=getActive();if(!t)return;
+  t.categories=DEFAULT_CATS(); persist(); renderCats();
+}
+
+// ── EXPORT ────────────────────────────────────────────────────
+const EX = {
+  // Colors
+  C_HEADER_BG:  '1C1814',   // dark header bg
+  C_HEADER_FG:  'FFFFFF',   // header text
+  C_DAY_BG:     'F3F0EB',   // day row bg
+  C_DAY_FG:     '1C1814',
+  C_ACCENT:     'C8431A',   // red accent
+  C_ACCENT_FG:  'FFFFFF',
+  C_BORDER:     'D4CDC3',
+  C_ALT:        'FAF8F5',   // alternating row
+
+  hdr: (v) => ({
+    v, t:'s',
+    s:{ font:{bold:true, color:{rgb:'FFFFFF'}, name:'Calibri', sz:10},
+        fill:{fgColor:{rgb:'1C1814'}},
+        alignment:{horizontal:'center', vertical:'center', wrapText:true},
+        border: EX.border() }
+  }),
+
+  dayHdr: (v) => ({
+    v, t:'s',
+    s:{ font:{bold:true, color:{rgb:'1C1814'}, name:'Calibri', sz:10},
+        fill:{fgColor:{rgb:'F3F0EB'}},
+        alignment:{horizontal:'left', vertical:'center'},
+        border: EX.border() }
+  }),
+
+  cell: (v, alt, bold) => ({
+    v: v||'', t:'s',
+    s:{ font:{name:'Calibri', sz:10, bold:!!bold, color:{rgb:'1C1814'}},
+        fill:{fgColor:{rgb: alt ? 'FAF8F5' : 'FFFFFF'}},
+        alignment:{horizontal:'left', vertical:'center', wrapText:true},
+        border: EX.border() }
+  }),
+
+  timeCell: (v) => ({
+    v: v||'', t:'s',
+    s:{ font:{name:'Courier New', sz:10, color:{rgb:'7A7268'}},
+        fill:{fgColor:{rgb:'F3F0EB'}},
+        alignment:{horizontal:'center', vertical:'center'},
+        border: EX.border() }
+  }),
+
+  catCell: (v, color) => ({
+    v: v||'', t:'s',
+    s:{ font:{name:'Calibri', sz:9, bold:true, color:{rgb: color||'1C1814'}},
+        fill:{fgColor:{rgb:'FFFFFF'}},
+        alignment:{horizontal:'left', vertical:'center'},
+        border: EX.border() }
+  }),
+
+  accent: (v) => ({
+    v, t:'s',
+    s:{ font:{bold:true, color:{rgb:'FFFFFF'}, name:'Calibri', sz:10},
+        fill:{fgColor:{rgb:'C8431A'}},
+        alignment:{horizontal:'left', vertical:'center'},
+        border: EX.border() }
+  }),
+
+  border: () => ({
+    top:   {style:'thin', color:{rgb:'D4CDC3'}},
+    bottom:{style:'thin', color:{rgb:'D4CDC3'}},
+    left:  {style:'thin', color:{rgb:'D4CDC3'}},
+    right: {style:'thin', color:{rgb:'D4CDC3'}},
+  }),
+
+  setCell: (ws, r, c, cellObj) => {
+    const addr = XLSX.utils.encode_cell({r,c});
+    ws[addr] = cellObj;
+  },
+
+  updateRange: (ws, maxR, maxC) => {
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0}, e:{r:maxR,c:maxC}});
+  }
+};
+
+// translate day type
+function dtEn(dt) { return L().dt_label[dt] || dt; }
+
+function doExport() {
+  const t = getActive(); if(!t) return;
+  const wb = XLSX.utils.book_new();
+  const cats = getCats(t);
+
+  // ── SHEET 1: TRIP OVERVIEW ───────────────────────────────────
+  const wsOv = {};
+  const ovRows = [
+    ['TRIP OVERVIEW'],
+    [],
+    ['Trip Name',   t.name||''],
+    ['Destination', t.dest||''],
+    ['Site / Vendor', (t.site||'').toUpperCase()],
+    ['Departure',   t.start||''],
+    ['Return',      t.end||''],
+    ['Total Days',  t.days.length],
+    ['Work Days',   t.days.filter(d=>d.entries.some(e=>e.cat==='work'||e.cat==='qa')).length],
+    ['Flights',     (t.flights||[]).length],
+    ['Transfers',   (t.transfers||[]).length],
+    [],
+    ['Notes', t.notes||''],
+  ];
+  ovRows.forEach((row, ri) => {
+    row.forEach((val, ci) => {
+      const addr = XLSX.utils.encode_cell({r:ri, c:ci});
+      if (ri===0 && ci===0) { wsOv[addr] = EX.accent(String(val)); return; }
+      const isLabel = ci===0 && ri>1;
+      wsOv[addr] = {
+        v: val, t: typeof val==='number'?'n':'s',
+        s:{ font:{name:'Calibri', sz:10, bold:isLabel, color:{rgb:'1C1814'}},
+            fill:{fgColor:{rgb: ri%2===0?'FAF8F5':'FFFFFF'}},
+            alignment:{horizontal:'left', vertical:'center'},
+            border: EX.border() }
+      };
+    });
+  });
+  wsOv['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:ovRows.length,c:1}});
+  wsOv['!cols'] = [{wch:18},{wch:40}];
+  wsOv['!rows'] = [{hpt:20}];
+  XLSX.utils.book_append_sheet(wb, wsOv, 'Trip Overview');
+
+  // ── SHEET 2: DAILY SCHEDULE ──────────────────────────────────
+  const wsSched = {};
+  const SCHED_COLS = ['Day','Date','Day of Week','Day Type','Daily Goal','Time','Category','Activity'];
+  SCHED_COLS.forEach((h,ci) => EX.setCell(wsSched, 0, ci, EX.hdr(h)));
+
+  let row = 1;
+  t.days.forEach((d, di) => {
+    const alt = di%2===0;
+    const isNewDay = true;
+    const dayEntries = d.entries && d.entries.length ? d.entries : [null];
+
+    dayEntries.forEach((e, ei) => {
+      const isFirst = ei===0;
+      const cat = e ? catById(t, e.cat) : null;
+      const catColor = cat ? cat.color.replace('#','') : '7A7268';
+
+      EX.setCell(wsSched, row, 0, isFirst ? EX.dayHdr(`Day ${d.dayNum}`)            : EX.cell('', alt));
+      EX.setCell(wsSched, row, 1, isFirst ? EX.dayHdr(d.date)                        : EX.cell('', alt));
+      EX.setCell(wsSched, row, 2, isFirst ? EX.dayHdr(d.dayLabel)                    : EX.cell('', alt));
+      EX.setCell(wsSched, row, 3, isFirst ? EX.dayHdr(dtEn(d.dayType||'work'))       : EX.cell('', alt));
+      EX.setCell(wsSched, row, 4, isFirst ? EX.cell(d.goal||'', alt, false)          : EX.cell('', alt));
+      EX.setCell(wsSched, row, 5, e ? EX.timeCell(e.time||'')                        : EX.cell('', alt));
+      EX.setCell(wsSched, row, 6, cat ? EX.catCell(`${cat.emoji} ${cat.name}`, catColor) : EX.cell('', alt));
+      EX.setCell(wsSched, row, 7, e ? EX.cell(e.text||'', alt)                       : EX.cell('', alt));
+      row++;
+    });
+  });
+
+  EX.updateRange(wsSched, row, 7);
+  wsSched['!cols'] = [{wch:8},{wch:13},{wch:12},{wch:13},{wch:32},{wch:7},{wch:18},{wch:55}];
+  wsSched['!rows'] = [{ hpt:22 }];
+  XLSX.utils.book_append_sheet(wb, wsSched, 'Daily Schedule');
+
+  // ── SHEET 3: FLIGHTS ─────────────────────────────────────────
+  const wsF = {};
+  const FCOLS = ['Date','From','To','Carrier','Departure','Arrival','Flight #','Notes'];
+  FCOLS.forEach((h,ci) => EX.setCell(wsF, 0, ci, EX.hdr(h)));
+  (t.flights||[]).forEach((f, fi) => {
+    const alt = fi%2===0;
+    [f.date,f.from,f.to,f.carrier,f.dep,f.arr,f.flightNum,f.notes].forEach((v,ci)=>{
+      EX.setCell(wsF, fi+1, ci, EX.cell(v||'', alt));
+    });
+  });
+  EX.updateRange(wsF, (t.flights||[]).length, 7);
+  wsF['!cols'] = [{wch:13},{wch:8},{wch:8},{wch:14},{wch:10},{wch:10},{wch:12},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, wsF, 'Flights');
+
+  // ── SHEET 4: TRANSFERS ───────────────────────────────────────
+  const wsTr = {};
+  const TCOLS = ['Date','Time','From','To','Type','Vendor','Cost','Notes'];
+  TCOLS.forEach((h,ci) => EX.setCell(wsTr, 0, ci, EX.hdr(h)));
+  (t.transfers||[]).forEach((r, ri) => {
+    const alt = ri%2===0;
+    [r.date,r.time,r.from,r.to,r.type,r.vendor,r.cost,r.notes].forEach((v,ci)=>{
+      EX.setCell(wsTr, ri+1, ci, EX.cell(v||'', alt));
+    });
+  });
+  EX.updateRange(wsTr, (t.transfers||[]).length, 7);
+  wsTr['!cols'] = [{wch:13},{wch:8},{wch:20},{wch:20},{wch:12},{wch:16},{wch:10},{wch:28}];
+  XLSX.utils.book_append_sheet(wb, wsTr, 'Transfers');
+
+  // ── SHEET 5: GANTT (logistics) ───────────────────────────────
+  const wsG = {};
+  const dayHeaders = t.days.map(d=>`Day ${d.dayNum}\n${d.date}`);
+  EX.setCell(wsG, 0, 0, EX.hdr('Activity'));
+  dayHeaders.forEach((h,ci) => EX.setCell(wsG, 0, ci+1, EX.hdr(h)));
+
+  const ganttCats = cats.filter(c=>c.id==='flight'||c.id==='transfer');
+  ganttCats.forEach((cat, ri) => {
+    EX.setCell(wsG, ri+1, 0, EX.cell(`${cat.emoji} ${cat.name}`, ri%2===0));
+    t.days.forEach((d,ci) => {
+      const has = d.entries.some(e=>e.cat===cat.id);
+      const addr = XLSX.utils.encode_cell({r:ri+1, c:ci+1});
+      wsG[addr] = {
+        v: has ? '✓' : '',
+        t: 's',
+        s:{ font:{name:'Calibri', sz:10, bold:has, color:{rgb: has ? 'FFFFFF' : '1C1814'}},
+            fill:{fgColor:{rgb: has ? cat.color.replace('#','') : (ri%2===0?'FAF8F5':'FFFFFF')}},
+            alignment:{horizontal:'center', vertical:'center'},
+            border: EX.border() }
+      };
+    });
+  });
+
+  EX.updateRange(wsG, ganttCats.length, t.days.length);
+  wsG['!cols'] = [{wch:20}, ...t.days.map(()=>({wch:9}))];
+  XLSX.utils.book_append_sheet(wb, wsG, 'Gantt');
+
+  const fname = `${(t.name||'trip').replace(/[^a-zA-Z0-9\s-]/g,'').trim().replace(/\s+/g,'-')}_schedule.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
+
+
+// ── I18N ──────────────────────────────────────────────────────
+const LANGS = {
+  he: {
+    dir: 'rtl', lang: 'he',
+    // header
+    save_pill:    '✓ נשמר',
+    btn_new_trip: '+ נסיעה חדשה',
+    btn_lang:     'EN',
+    btn_export:   '⬇ Excel',
+    // tabs
+    tab_trips:    'נסיעות',
+    tab_schedule: 'לוז יומי',
+    tab_logistics:'לוגיסטיקה',
+    tab_gantt:    'גאנט',
+    tab_cats:     '⚙ קטגוריות',
+    // body
+    btn_create_main: '+ צור נסיעה חדשה',
+    no_trip:         'בחר נסיעה פעילה',
+    no_sched:        'בחר נסיעה פעילה מטאב "נסיעות"',
+    // logistics
+    lhdr_flights:    '✈ טיסות',
+    lhdr_transfers:  '🚗 מוניות / העברות',
+    fth: ['תאריך','מוצא','יעד','חברה','יציאה','הגעה','טיסה #','הערות'],
+    tth: ['תאריך','שעה','מאיפה','לאן','סוג','ספק','עלות','הערות'],
+    btn_add_flight:   '+ הוסף טיסה',
+    btn_add_transfer: '+ הוסף העברה',
+    // modal new
+    m_new_title:   'נסיעה חדשה',
+    m_new_cancel:  'ביטול',
+    m_new_confirm: 'צור נסיעה →',
+    m_new_name_lbl:'שם הנסיעה',
+    m_new_site_lbl:'אתר / ספק',
+    m_new_dest_lbl:'יעד',
+    m_new_dep_lbl: 'תאריך יציאה',
+    m_new_ret_lbl: 'תאריך חזרה',
+    m_new_notes_lbl:'הערות',
+    m_new_notes_ph: 'מודלים, מטרות...',
+    m_new_divider:  '— או העתק מנסיעה קיימת —',
+    m_new_copy_lbl: 'העתק מנסיעה',
+    m_new_copy_def: '— ללא העתקה —',
+    m_new_copy_hint:'הלוז, הקטגוריות, הטיסות וההעברות יועתקו. כל עריכה תשפיע רק על הנסיעה החדשה.',
+    // modal days
+    m_days_title:  (n) => `הגדרת ${n} ימי נסיעה`,
+    m_days_inst:   'בחר סוג לכל יום — הלוז ימולא אוטומטית',
+    m_days_fill:   'מלא הכל:',
+    m_days_cancel: 'ביטול',
+    m_days_confirm:'אישור →',
+    // day types
+    dt_label: {work:'עבודה',flight:'טיסה',free:'חופשי',travel:'נסיעה',empty:'ריק'},
+    // stats labels
+    stat_days:      'ימי נסיעה',
+    stat_work:      'ימי עבודה',
+    stat_flights:   'טיסות',
+    stat_transfers: 'העברות',
+    stat_dest:      'יעד',
+    // schedule
+    goal_ph:  'מטרת היום...',
+    act_ph:   'תיאור פעילות...',
+    btn_add_entry: '+ הוסף',
+    no_entries: 'אין פעילויות — הוסף למטה',
+    // cats
+    cats_title: (name) => `קטגוריות — ${name}`,
+    cats_note:  'שינויים ישפיעו רק על נסיעה זו.',
+    btn_add_cat:   '+ הוסף קטגוריה',
+    btn_reset_cats:'↺ אפס לברירת מחדל',
+    cat_ph: 'שם',
+    // trips
+    empty_title: 'אין נסיעות עדיין',
+    empty_sub:   'לחץ "צור נסיעה חדשה" כדי להתחיל',
+    days_label:  (n) => `${n} ימים`,
+    clone_title: 'שכפל',
+    edit_site_title: 'לחץ לעריכת אתר',
+    edit_site_prompt: 'שם אתר / ספק:',
+    // alerts
+    alert_no_name:  'נא להזין שם',
+    alert_bad_dates:'תאריכים לא תקינים',
+    confirm_delete_trip: 'למחוק?',
+    confirm_delete_cat:  'למחוק?',
+    confirm_reset_cats:  'לאפס?',
+    // day labels
+    day_prefix: 'יום',
+    sat_label:  'שבת',
+    day_names:  ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','שבת'],
+    locale: 'he-IL',
+    copy_suffix: ' (עותק)',
+    // gantt sections
+    g_logistics: 'LOGISTICS',
+    g_day_type:  'סוג יום',
+    g_day_label: '📅 סוג יום',
+    g_models:    'מודלים',
+    no_flight_auto:   'אין טיסות בלוז עדיין',
+    no_transfer_auto: 'אין העברות בלוז עדיין',
+    no_hotel_auto: 'אין לינות בלוז עדיין',
+    hotel_ph: 'מלון...',
+    lhdr_hotels: 'מלון',
+    hth: ['תאריך כניסה', 'תאריך יציאה', 'שם המלון', 'כתובת', 'אישור', 'הערות'],
+    btn_add_hotel: '+ הוסף מלון',
+    // other option
+    other_option: 'אחר',
+    // tcard active label
+    active_label: 'פעיל',
+    // default cats
+    def_cats: [
+      {id:'flight',   name:'טיסה',        emoji:'✈', color:'#1a6b8a'},
+      {id:'transfer', name:'העברה/מונית', emoji:'🚗', color:'#5a7a2e'},
+      {id:'work',     name:'עבודה',       emoji:'◆',  color:'#2a4a8a'},
+      {id:'qa',       name:'QA / מיון',   emoji:'🔍', color:'#6b3d8a'},
+      {id:'meeting',  name:'פגישה',       emoji:'🤝', color:'#8a3d6b'},
+      {id:'meal',     name:'ארוחה',       emoji:'🍽', color:'#8a6a1a'},
+      {id:'summary',  name:'סיכום יומי',  emoji:'📋', color:'#4a4a4a'},
+      {id:'free',     name:'חופשי',       emoji:'🌿', color:'#2d6a2d'},
+      {id:'hotel',    name:'מלון',        emoji:'🏨', color:'#1a5a6a'},
+    ],
+    // templates
+    tpl_breakfast:  'ארוחת בוקר',
+    tpl_lunch:      'ארוחת צהריים',
+    tpl_work:       '',
+    tpl_qa:         'QA + מיון',
+    tpl_summary:    'סיכום יומי',
+    tpl_hotel:      'חזרה למלון',
+    tpl_transfer:   'העברה לשדה תעופה',
+    tpl_flight:     'טיסה — ',
+    tpl_free:       'יום חופשי 🌅',
+    tpl_travel:     'נסיעה — ',
+    tpl_hotel_name: 'לינה במלון — ',
+  },
+
+  en: {
+    dir: 'ltr', lang: 'en',
+    save_pill:    '✓ Saved',
+    btn_new_trip: '+ New Trip',
+    btn_lang:     'HE',
+    btn_export:   '⬇ Excel',
+    tab_trips:    'Trips',
+    tab_schedule: 'Schedule',
+    tab_logistics:'Logistics',
+    tab_gantt:    'Gantt',
+    tab_cats:     '⚙ Categories',
+    btn_create_main: '+ Create New Trip',
+    no_trip:         'Select an active trip',
+    no_sched:        'Select an active trip from the "Trips" tab',
+    lhdr_flights:    '✈ Flights',
+    lhdr_transfers:  '🚗 Taxis / Transfers',
+    fth: ['Date','From','To','Carrier','Departure','Arrival','Flight #','Notes'],
+    tth: ['Date','Time','From','To','Type','Vendor','Cost','Notes'],
+    btn_add_flight:   '+ Add Flight',
+    btn_add_transfer: '+ Add Transfer',
+    m_new_title:   'New Trip',
+    m_new_cancel:  'Cancel',
+    m_new_confirm: 'Create Trip →',
+    m_new_name_lbl:'Trip Name',
+    m_new_site_lbl:'Site / Vendor',
+    m_new_dest_lbl:'Destination',
+    m_new_dep_lbl: 'Departure Date',
+    m_new_ret_lbl: 'Return Date',
+    m_new_notes_lbl:'Notes',
+    m_new_notes_ph: 'Models, goals...',
+    m_new_divider:  '— or copy from existing trip —',
+    m_new_copy_lbl: 'Copy from trip',
+    m_new_copy_def: '— No copy —',
+    m_new_copy_hint:'Schedule, categories, flights and transfers will be copied. Edits affect only the new trip.',
+    m_days_title:  (n) => `Set up ${n} trip days`,
+    m_days_inst:   'Choose a type for each day — schedule will be pre-filled',
+    m_days_fill:   'Fill all:',
+    m_days_cancel: 'Cancel',
+    m_days_confirm:'Confirm →',
+    dt_label: {work:'Work',flight:'Flight',free:'Day Off',travel:'Travel',empty:'Empty'},
+    stat_days:      'Trip Days',
+    stat_work:      'Work Days',
+    stat_flights:   'Flights',
+    stat_transfers: 'Transfers',
+    stat_dest:      'Destination',
+    goal_ph:  'Day goal...',
+    act_ph:   'Activity description...',
+    btn_add_entry: '+ Add',
+    no_entries: 'No activities — add below',
+    cats_title: (name) => `Categories — ${name}`,
+    cats_note:  'Changes apply only to this trip.',
+    btn_add_cat:   '+ Add Category',
+    btn_reset_cats:'↺ Reset to defaults',
+    cat_ph: 'Name',
+    empty_title: 'No trips yet',
+    empty_sub:   'Click "Create New Trip" to start',
+    days_label:  (n) => `${n} days`,
+    clone_title: 'Clone',
+    edit_site_title: 'Click to edit site',
+    edit_site_prompt: 'Site / Vendor name:',
+    alert_no_name:  'Please enter a name',
+    alert_bad_dates:'Invalid dates',
+    confirm_delete_trip: 'Delete this trip?',
+    confirm_delete_cat:  'Delete?',
+    confirm_reset_cats:  'Reset to defaults?',
+    day_prefix: 'Day',
+    sat_label:  'Sat',
+    day_names:  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    locale: 'en-US',
+    copy_suffix: ' (copy)',
+    g_logistics: 'LOGISTICS',
+    g_day_type:  'DAY TYPE',
+    g_day_label: '📅 Day Type',
+    g_models:    'MODELS',
+    no_flight_auto:   'No flights in schedule yet',
+    no_transfer_auto: 'No transfers in schedule yet',
+    no_hotel_auto: 'No hotel entries in schedule yet',
+    hotel_ph: 'Hotel...',
+    lhdr_hotels: 'Hotels',
+    hth: ['Check-in', 'Check-out', 'Hotel Name', 'Address', 'Confirmation', 'Notes'],
+    btn_add_hotel: '+ Add Hotel',
+    other_option: 'Other',
+    active_label: 'Active',
+    def_cats: [
+      {id:'flight',   name:'Flight',      emoji:'✈', color:'#1a6b8a'},
+      {id:'transfer', name:'Transfer',    emoji:'🚗', color:'#5a7a2e'},
+      {id:'work',     name:'Work',        emoji:'◆',  color:'#2a4a8a'},
+      {id:'qa',       name:'QA / Sorting',emoji:'🔍', color:'#6b3d8a'},
+      {id:'meeting',  name:'Meeting',     emoji:'🤝', color:'#8a3d6b'},
+      {id:'meal',     name:'Meal',        emoji:'🍽', color:'#8a6a1a'},
+      {id:'summary',  name:'Daily Summary',emoji:'📋',color:'#4a4a4a'},
+      {id:'free',     name:'Free',        emoji:'🌿', color:'#2d6a2d'},
+      {id:'hotel',     name:'Hotel',       emoji:'🏨', color:'#1a5a6a'},
+    ],
+    tpl_breakfast:  'Breakfast',
+    tpl_lunch:      'Lunch',
+    tpl_work:       '',
+    tpl_qa:         'QA + Sorting',
+    tpl_summary:    'Daily Summary',
+    tpl_hotel:      'Back to hotel',
+    tpl_transfer:   'Transfer to airport',
+    tpl_flight:     'Flight — ',
+    tpl_free:       'Day off 🌅',
+    tpl_travel:     'Travel — ',
+    tpl_hotel_name: 'Hotel — ',
+  }
+};
+
+let curLang = localStorage.getItem('tripplanner_supplier_lang') || 'en';
+
+// ── THEME ─────────────────────────────────────────────────────
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('tripplanner_theme', theme);
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+applyTheme(localStorage.getItem('tripplanner_theme') || 'light');
+function L() { return LANGS[curLang]; }
+
+function applyLang() {
+  const l = L();
+  const root = document.getElementById('root');
+  root.setAttribute('lang', l.lang);
+  root.setAttribute('dir',  l.dir);
+
+  // static elements
+  const set = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+  const setHTML = (id, html) => { const el=document.getElementById(id); if(el) el.innerHTML=html; };
+
+  set('save-pill',           l.save_pill);
+  set('btn-new-trip',        l.btn_new_trip);
+  set('btn-lang',            l.btn_lang);
+  set('btn-export',          l.btn_export);
+  set('tab-btn-trips',       l.tab_trips);
+  set('tab-btn-schedule',    l.tab_schedule);
+  set('tab-btn-logistics',   l.tab_logistics);
+  set('tab-btn-gantt',       l.tab_gantt);
+  set('tab-btn-cats',        l.tab_cats);
+  set('btn-create-trip-main',l.btn_create_main);
+  set('no-sched-txt',        l.no_sched);
+  set('lhdr-flights',        l.lhdr_flights);
+  set('lhdr-transfers',      l.lhdr_transfers);
+  set('btn-add-flight',      l.btn_add_flight);
+  set('btn-add-transfer',    l.btn_add_transfer);
+  set('m-new-title',         l.m_new_title);
+  set('m-new-cancel',        l.m_new_cancel);
+  set('m-new-confirm',       l.m_new_confirm);
+  set('m-days-cancel',       l.m_days_cancel);
+  set('m-days-confirm',      l.m_days_confirm);
+  set('copy-hint',           l.m_new_copy_hint);
+
+  // logistics table headers
+  l.fth.forEach((h,i) => set(`fth-${i}`, h));
+  l.tth.forEach((h,i) => set(`tth-${i}`, h));
+  const lhdrHotels = document.getElementById('lhdr-hotels');
+  if(lhdrHotels) lhdrHotels.textContent = '🏨 ' + (l.lhdr_hotels||'Hotels');
+  (l.hth||[]).forEach((h,i) => set(`hth-${i}`, h));
+  set('btn-add-hotel', l.btn_add_hotel||'+ Add Hotel');
+
+  // modal form labels / placeholders
+  const setLabel = (forId, txt) => {
+    const lbl = document.querySelector(`label[for="${forId}"]`);
+    if(lbl) lbl.textContent = txt;
+  };
+  // Use query on fr labels
+  const labels = document.querySelectorAll('.fr label');
+  // Re-render modal labels via innerHTML patch on the modal
+  const mNew = document.getElementById('m-new');
+  if(mNew) {
+    mNew.querySelector('#nt-name').placeholder = 'Vietnam May 2025 — Casla';
+    mNew.querySelector('#nt-notes').placeholder = l.m_new_notes_ph;
+    // update <label> text nodes
+    const lbls = mNew.querySelectorAll('.fr label');
+    const lkeys = [l.m_new_name_lbl, l.m_new_site_lbl, l.m_new_dest_lbl, l.m_new_dep_lbl, l.m_new_ret_lbl, l.m_new_notes_lbl, l.m_new_copy_lbl];
+    lbls.forEach((el,i) => { if(lkeys[i]) el.textContent = lkeys[i]; });
+    // divider
+    const div = mNew.querySelector('.divider');
+    if(div) div.textContent = l.m_new_divider;
+    // "other" option in dest
+    const destSel = document.getElementById('nt-dest');
+    if(destSel) {
+      const lastOpt = destSel.querySelector('option:last-child');
+      if(lastOpt) lastOpt.textContent = l.other_option;
+    }
+    // site "other"
+    const siteSel = document.getElementById('nt-site');
+    if(siteSel) {
+      const lastOpt = siteSel.querySelector('option:last-child');
+      if(lastOpt) lastOpt.textContent = l.other_option;
+    }
+    // copy default option
+    const copySel = document.getElementById('nt-copy');
+    if(copySel && copySel.options[0]) copySel.options[0].textContent = l.m_new_copy_def;
+  }
+
+  // no-trip placeholders
+  document.querySelectorAll('.no-trip-txt').forEach(el => el.textContent = l.no_trip);
+
+  // modal form labels
+  const sl2 = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+  sl2('lbl-trip-name', l.m_new_name_lbl);
+  sl2('lbl-site',      l.m_new_site_lbl);
+  sl2('lbl-dest',      l.m_new_dest_lbl);
+  sl2('lbl-dep',       l.m_new_dep_lbl);
+  sl2('lbl-ret',       l.m_new_ret_lbl);
+  sl2('lbl-notes',     l.m_new_notes_lbl);
+  sl2('lbl-copy',      l.m_new_copy_lbl);
+  sl2('m-new-divider', l.m_new_divider);
+  const copyDef = document.getElementById('copy-def-opt');
+  if(copyDef) copyDef.textContent = l.m_new_copy_def;
+  const ntNotes = document.getElementById('nt-notes');
+  if(ntNotes) ntNotes.placeholder = l.m_new_notes_ph;
+  const clBtn = document.getElementById('tab-btn-checklist');
+  if(clBtn) clBtn.textContent = curLang==='he' ? '✅ צ׳קליסט' : '✅ Checklist';
+  const budgetBtn = document.getElementById('tab-btn-budget');
+  if(budgetBtn) budgetBtn.textContent = curLang==='he' ? '💰 תקציב' : '💰 Budget';
+  const siteOther = document.getElementById('site-other-opt');
+  if(siteOther) siteOther.textContent = l.other_option;
+  const destOther = document.getElementById('dest-other-opt');
+  if(destOther) destOther.textContent = l.other_option;
+
+  // refresh whichever tab is active
+  const activeTab = document.querySelector('.tab.active');
+  if(activeTab) {
+    const tabName = activeTab.getAttribute('data-tab');
+    ({trips:renderTrips,schedule:renderSchedule,logistics:renderLogistics,gantt:renderGantt,cats:renderCats,calendar:renderCalendar,checklist:renderChecklist,budget:renderBudget}[tabName]||renderTrips)();
+  }
+}
+
+function toggleLang() {
+  curLang = curLang === 'he' ? 'en' : 'he';
+  localStorage.setItem('tripplanner_supplier_lang', curLang);
+
+  // Update category names in all trips that use default cats
+  const newDefs = DEFAULT_CATS(); // gets new lang's cats
+  S.trips.forEach(trip => {
+    if (!trip.categories) return;
+    trip.categories.forEach(cat => {
+      const def = newDefs.find(d => d.id === cat.id);
+      if (def) {
+        // Only update if the name looks like a known default (matches either lang)
+        const heNames = LANGS.he.def_cats.map(c=>c.name);
+        const enNames = LANGS.en.def_cats.map(c=>c.name);
+        if (heNames.includes(cat.name) || enNames.includes(cat.name)) {
+          cat.name = def.name;
+        }
+      }
+    });
+  });
+  persist();
+  applyLang();
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────
+function exportPDF() {
+  const t = getActive(); if (!t) return;
+  const l = L();
+
+  // Inject a temporary doc header into the schedule section
+  const schedArea = document.getElementById('tab-schedule');
+  const existing = document.getElementById('pdf-doc-header');
+  if (existing) existing.remove();
+
+  const meta = [
+    t.dest || '',
+    t.start + ' → ' + t.end,
+    (t.site || '').toUpperCase(),
+  ].filter(Boolean).join('  ·  ');
+
+  const hdr = document.createElement('div');
+  hdr.id = 'pdf-doc-header';
+  hdr.className = 'pdf-doc-header pdf-only';
+  hdr.innerHTML =
+    '<div class="pdf-doc-title">' + (t.name || 'Trip Schedule') + '</div>' +
+    '<div class="pdf-doc-meta">' + meta + '</div>';
+  schedArea.insertBefore(hdr, schedArea.firstChild);
+
+  // Switch to schedule tab silently for print
+  const prevActive = document.querySelector('.section.active');
+  const prevTab    = document.querySelector('.tab.active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(tb => tb.classList.remove('active'));
+  schedArea.classList.add('active');
+
+  // Expand all day bodies (remove collapsed)
+  const collapsedBodies = document.querySelectorAll('.day-body.collapsed');
+  collapsedBodies.forEach(b => b.classList.remove('collapsed'));
+
+  window.print();
+
+  // Restore state
+  collapsedBodies.forEach(b => b.classList.add('collapsed'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  if (prevActive) prevActive.classList.add('active');
+  if (prevTab)    prevTab.classList.add('active');
+  hdr.remove();
+}
+
+// ── CALENDAR VIEW ────────────────────────────────────────────
+const DT_COLOR = {work:'#2a4a8a',flight:'#c8431a',free:'#2d6a2d',travel:'#8a6a1a',empty:'#ccc'};
+const DT_BG    = {work:'rgba(42,74,138,.12)',flight:'rgba(200,67,26,.12)',free:'rgba(45,106,45,.12)',travel:'rgba(138,106,26,.12)',empty:'rgba(0,0,0,.03)'};
+
+function renderCalendar() {
+  const t = getActive();
+  document.getElementById('no-cal').style.display = t ? 'none' : '';
+  const area = document.getElementById('cal-area');
+  if (!t) { area.innerHTML = ''; return; }
+
+  // Build a map: date → day object
+  const dayMap = {};
+  t.days.forEach(d => { dayMap[d.date] = d; });
+
+  // Find all months in the trip
+  const start = new Date(t.start + 'T00:00:00Z');
+  const end   = new Date(t.end   + 'T00:00:00Z');
+  const months = [];
+  let cur = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+  while (cur <= end) {
+    months.push({ year: cur.getUTCFullYear(), month: cur.getUTCMonth() });
+    cur.setUTCMonth(cur.getUTCMonth() + 1);
+  }
+
+  const todayISO = new Date().toISOString().slice(0,10);
+  const cats = getCats(t);
+  const DOW_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  let html = '<div class="cal-wrap">';
+
+  months.forEach(({year, month}) => {
+    const firstDay  = new Date(Date.UTC(year, month, 1));
+    const daysInMo  = new Date(Date.UTC(year, month+1, 0)).getUTCDate();
+    const startDow  = firstDay.getUTCDay(); // 0=Sun
+
+    html += `<div class="cal-month-block">
+      <div class="cal-month-hdr">📅 <span>${MONTH_NAMES[month]}</span>&nbsp;${year}</div>
+      <div class="cal-grid">`;
+
+    // Day-of-week headers
+    DOW_LABELS.forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
+
+    // Empty cells before first day
+    for (let i = 0; i < startDow; i++) {
+      html += `<div class="cal-day cal-empty"></div>`;
+    }
+
+    // Day cells
+    for (let d = 1; d <= daysInMo; d++) {
+      const iso  = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const day  = dayMap[iso];
+      const isToday = iso === todayISO;
+
+      if (!day) {
+        html += `<div class="cal-day cal-empty"><div class="cal-day-num">${d}</div></div>`;
+        continue;
+      }
+
+      const dt    = day.dayType || 'work';
+      const dtCol = DT_COLOR[dt] || '#888';
+      const dtBg  = DT_BG[dt]   || 'transparent';
+      const entries = day.entries || [];
+
+      // Show up to 3 entry pills
+      const MAX_PILLS = 3;
+      const pills = entries.slice(0, MAX_PILLS).map(e => {
+        const cat = catById(t, e.cat);
+        const bg  = cat.color + '22';
+        const col = cat.color;
+        return `<span class="cal-pill" style="background:${bg};color:${col}">${cat.emoji} ${esc(e.text)}</span>`;
+      }).join('');
+      const more = entries.length > MAX_PILLS
+        ? `<div class="cal-more">+${entries.length - MAX_PILLS} more</div>` : '';
+
+      html += `<div class="cal-day cal-trip-day${isToday?' cal-today':''}"
+          style="background:${dtBg}"
+          onclick="calDayClick('${esc(t.id)}','${iso}')">
+        <div class="cal-day-type-bar" style="background:${dtCol}"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div class="cal-day-num">${d}</div>
+          <div class="cal-day-daynum">D${day.dayNum}</div>
+        </div>
+        ${pills}${more}
+      </div>`;
+    }
+
+    // Trailing empty cells to complete last row
+    const totalCells = startDow + daysInMo;
+    const trailing   = (7 - (totalCells % 7)) % 7;
+    for (let i = 0; i < trailing; i++) {
+      html += `<div class="cal-day cal-empty"></div>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function calDayClick(tid, iso) {
+  const t = S.trips.find(x => x.id === tid); if (!t) return;
+  const day = t.days.find(d => d.date === iso); if (!day) return;
+  const cats = getCats(t);
+  const dt   = day.dayType || 'work';
+  const dtCol= DT_COLOR[dt] || '#888';
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dateObj = new Date(iso + 'T00:00:00Z');
+  const dateStr = `${day.dayLabel} · ${dateObj.getUTCDate()} ${MONTH_NAMES[dateObj.getUTCMonth()]} ${dateObj.getUTCFullYear()}`;
+
+  const entries = day.entries || [];
+  let bodyHTML = '';
+  if (day.goal) {
+    bodyHTML += `<div class="cal-popup-goal">🎯 ${esc(day.goal)}</div>`;
+  }
+  if (day.hotel) {
+    bodyHTML += `<div class="cal-popup-hotel">🏨 ${esc(day.hotel)}</div>`;
+  }
+  if (!entries.length) {
+    bodyHTML += `<div class="cal-empty-day-msg">No activities scheduled</div>`;
+  } else {
+    bodyHTML += entries.map(e => {
+      const cat = catById(t, e.cat);
+      return `<div class="cal-popup-row">
+        <div class="cal-popup-time">${esc(e.time || '—')}</div>
+        <div class="cal-popup-entry">
+          <div class="cat-bar" style="background:${cat.color};flex-shrink:0"></div>
+          ${esc(e.text)}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const popup = document.createElement('div');
+  popup.className = 'cal-popup-overlay';
+  popup.innerHTML = `<div class="cal-popup">
+    <div class="cal-popup-hdr" style="border-bottom:3px solid ${dtCol}">
+      <div>
+        <div class="cal-popup-title">Day ${day.dayNum} · ${dateStr}</div>
+        <div class="cal-popup-meta">${DT_ICON[dt]} ${DT_LABEL(dt)}</div>
+      </div>
+      <button class="cal-popup-close" onclick="this.closest('.cal-popup-overlay').remove()">✕</button>
+    </div>
+    <div class="cal-popup-body">${bodyHTML}</div>
+    <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right">
+      <button class="btn btn-dark btn-sm" onclick="showTab('schedule');this.closest('.cal-popup-overlay').remove()">→ פתח בלוז</button>
+    </div>
+  </div>`;
+
+  popup.addEventListener('click', e => { if (e.target === popup) popup.remove(); });
+  document.body.appendChild(popup);
+}
+
+// ── BACKUP / RESTORE ──────────────────────────────────────────
+function backupJSON() {
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `trip-planner-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function restoreJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.trips || !Array.isArray(parsed.trips)) {
+        alert('Invalid backup file'); return;
+      }
+      if (!confirm(`Restore ${parsed.trips.length} trip(s)? This will overwrite current data.`)) return;
+      S = parsed;
+      persist();
+      updateHeader();
+      applyLang();
+      alert('✓ Restored successfully');
+    } catch(err) {
+      alert('Failed to parse backup file');
+    }
+  };
+  reader.readAsText(file);
+  // reset input so same file can be selected again
+  event.target.value = '';
+}
+
+
+// ── VALIDATION ENGINE ────────────────────────────────────────────
+function runValidation(t) {
+  if (!t) return { score:0, issues:[], warnings:[], passed:[] };
+  const issues=[], warnings=[], passed=[];
+
+  // Flights
+  const flights = (t.flights||[]);
+  const hasOutbound = flights.some(f=>f.date<=t.start||f.date===t.start);
+  const hasReturn   = flights.some(f=>f.date>=t.end||f.date===t.end);
+  if (hasOutbound) passed.push({txt:'Outbound flight exists', cat:'flight'});
+  else issues.push({txt:'No outbound flight defined', cat:'flight'});
+  if (hasReturn) passed.push({txt:'Return flight exists', cat:'flight'});
+  else issues.push({txt:'No return flight defined', cat:'flight'});
+
+  // Hotels — night coverage
+  const start = new Date(t.start+'T00:00:00Z');
+  const end   = new Date(t.end+'T00:00:00Z');
+  const hotelNights=[], missingNights=[];
+  for(let d=new Date(start); d<end; d.setUTCDate(d.getUTCDate()+1)) {
+    const iso = d.toISOString().slice(0,10);
+    const covered = (t.hotels||[]).some(h=>h.checkin<=iso && h.checkout>iso);
+    if(covered) hotelNights.push(iso);
+    else missingNights.push(iso);
+  }
+  const totalNights = hotelNights.length + missingNights.length;
+  if(missingNights.length===0) passed.push({txt:`All ${hotelNights.length} nights covered`, cat:'hotel'});
+  else {
+    if(missingNights.length>2) issues.push({txt:`Hotel missing for ${missingNights.length} nights`, cat:'hotel', nights:missingNights});
+    else missingNights.forEach(n=>issues.push({txt:`Hotel missing: ${n}`, cat:'hotel'}));
+  }
+
+  // Transfers
+  const allEntries = t.days.flatMap(d=>d.entries||[]);
+  const hasPickup    = allEntries.some(e=>e.cat==='transfer' && e.text.toLowerCase().match(/pickup|train.*site|station.*site/));
+  const hasDropoff   = allEntries.some(e=>e.cat==='transfer' && e.text.toLowerCase().match(/transfer.*airport|airport.*transfer|drop/));
+  if(hasPickup)  passed.push({txt:'Airport pickup defined', cat:'transfer'});
+  else warnings.push({txt:'Airport pickup not confirmed', cat:'transfer'});
+  if(hasDropoff) passed.push({txt:'Airport drop-off defined', cat:'transfer'});
+  else warnings.push({txt:'Airport drop-off not confirmed', cat:'transfer'});
+
+  // Schedule completeness
+  t.days.forEach(d=>{
+    if(d.dayType==='work') {
+      if(!d.entries||d.entries.length===0) warnings.push({txt:`Day ${d.dayNum} (${d.date}) has no activities`, cat:'schedule', di:d.dayNum});
+      if(!d.goal) warnings.push({txt:`Day ${d.dayNum} has no objective`, cat:'schedule', di:d.dayNum});
+      const hasWork = (d.entries||[]).some(e=>e.cat==='work'||e.cat==='qa');
+      if(!hasWork && d.entries&&d.entries.length>0) warnings.push({txt:`Day ${d.dayNum} marked Work but no work activities`, cat:'schedule', di:d.dayNum});
+    }
+  });
+
+  // Score
+  const total = passed.length + warnings.length + issues.length;
+  const score = total===0 ? 100 : Math.round((passed.length / total) * 100);
+  const tripDays = t.days.length;
+  const status = issues.length===0 && warnings.length===0 ? 'ready'
+               : issues.length===0 ? 'planning' : 'critical';
+
+  return {score, issues, warnings, passed, hotelNights, missingNights, totalNights, tripDays, status};
+}
+
+function renderReadinessDashboard() {
+  const t = getActive();
+  const banner = document.getElementById('readiness-banner');
+  const dash   = document.getElementById('readiness-dashboard');
+  if(!t||!banner||!dash) return;
+
+  const v = runValidation(t);
+  dash.style.display = '';
+  const statusColor = v.status==='ready' ? '#1DB954' : v.status==='planning' ? '#f59e0b' : '#ef4444';
+  const statusLabel = v.status==='ready' ? '🟢 READY' : v.status==='planning' ? '🟡 PLANNING' : '🔴 INCOMPLETE';
+
+  // Readiness ring (SVG circle)
+  const r=28, circ=2*Math.PI*r, offset=circ*(1-v.score/100);
+  const ringColor = v.score>=80?'#1DB954':v.score>=50?'#f59e0b':'#ef4444';
+
+  const completedRows = v.passed.slice(0,5).map(p=>`<div class="ready-item ok"><span class="ready-item-icon">✓</span>${p.txt}</div>`).join('');
+  const issueRows = [
+    ...v.issues.map(i=>`<div class="ready-item err" onclick="showTab('logistics')"><span class="ready-item-icon">❌</span>${i.txt}</div>`),
+    ...v.warnings.slice(0,4).map(w=>`<div class="ready-item warn"><span class="ready-item-icon">⚠</span>${w.txt}</div>`),
+  ].join('');
+
+  // Hotel timeline
+  const allNights = [];
+  const s0=new Date(t.start+'T00:00:00Z'), e0=new Date(t.end+'T00:00:00Z');
+  for(let d=new Date(s0);d<e0;d.setUTCDate(d.getUTCDate()+1)){
+    const iso=d.toISOString().slice(0,10);
+    const hotel = (t.hotels||[]).find(h=>h.checkin<=iso&&h.checkout>iso);
+    const covered = !!hotel;
+    const badge = hotel ? (hotel.notes&&hotel.notes.includes('✅')?'booked':hotel.notes&&hotel.notes.includes('❓')?'confirm':'book') : '';
+    allNights.push({iso, covered, name:hotel?hotel.name:'', badge});
+  }
+  const hotelTL = allNights.map(n=>`
+    <div class="ht-row ${n.covered?'covered':'missing'}">
+      <span class="ht-date">${n.iso}</span>
+      <span class="ht-status">${n.covered?'🏨':'❌'}</span>
+      <span class="ht-name">${n.covered?n.name:'Missing hotel'}</span>
+      ${n.covered?`<span class="ht-badge ${n.badge}">${n.badge==='booked'?'✅ Booked':n.badge==='confirm'?'❓ Confirm':'📌 Book'}</span>`:''}
+    </div>`).join('');
+
+  // Validation items
+  const vItems = [
+    '<div class="v-section-label">✅ Passed</div>',
+    ...v.passed.map(p=>`<div class="v-item ok"><span class="v-item-icon">✓</span>${p.txt}</div>`),
+    v.warnings.length?'<div class="v-section-label">⚠ Warnings</div>':'',
+    ...v.warnings.map(w=>`<div class="v-item warn"><span class="v-item-icon">⚠</span>${w.txt}</div>`),
+    v.issues.length?'<div class="v-section-label">❌ Critical</div>':'',
+    ...v.issues.map(i=>`<div class="v-item err"><span class="v-item-icon">❌</span>${i.txt}</div>`),
+  ].join('');
+
+  dash.innerHTML = `
+    <div class="ready-dash">
+      <div class="ready-dash-header">
+        <div class="ready-score-ring">
+          <svg width="72" height="72" class="ready-ring-svg">
+            <circle cx="36" cy="36" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
+            <circle cx="36" cy="36" r="${r}" fill="none" stroke="${ringColor}" stroke-width="6"
+              stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+              stroke-linecap="round" transform="rotate(-90 36 36)"/>
+            <text x="36" y="42" text-anchor="middle" fill="${ringColor}" font-size="16" font-weight="900" font-family="Inter,sans-serif">${v.score}%</text>
+          </svg>
+          <div>
+            <div class="ready-score-title">Travel Readiness</div>
+            <div class="ready-score-label">Trip Status</div>
+            <div style="margin-top:4px">
+              <span class="status-badge ${v.status}">${statusLabel}</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px">
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:#1DB954">${v.tripDays}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em">Trip Days</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:#1DB954">${(v.hotelNights||[]).length}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em">Covered Nights</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:${(v.missingNights||[]).length>0?'#ef4444':'#1DB954'}">${(v.missingNights||[]).length}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em">Missing Nights</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:900;color:${v.issues.length>0?'#ef4444':v.warnings.length>0?'#f59e0b':'#1DB954'}">${v.issues.length+v.warnings.length}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.05em">Open Issues</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ready-body">
+        <div class="ready-col">
+          <div class="ready-col-title">✅ Completed</div>
+          ${completedRows || '<div class="ready-item" style="color:var(--text3)">No completed items yet</div>'}
+        </div>
+        <div class="ready-col">
+          <div class="ready-col-title">❌ Missing / Issues</div>
+          ${issueRows || '<div class="ready-item ok">All clear! 🎉</div>'}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:0">
+      <div class="validation-panel">
+        <div class="validation-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span>🔍 Trip Validation</span>
+          <span style="font-size:11px;color:var(--text3)">${v.passed.length} passed · ${v.warnings.length} warnings · ${v.issues.length} critical</span>
+        </div>
+        <div>${vItems}</div>
+      </div>
+      <div class="validation-panel">
+        <div class="validation-header">🏨 Hotel Coverage Timeline</div>
+        <div class="hotel-timeline">${hotelTL}</div>
+      </div>
+    </div>`;
+
+  // Banner
+  if(v.issues.length>0) {
+    const missingList = v.issues.map(i=>'• '+i.txt).join(' &nbsp;|&nbsp; ');
+    banner.style.display='';
+    banner.innerHTML = `<div class="missing-banner">
+      <div class="missing-banner-text">
+        <div class="missing-banner-title">🔴 Trip Not Ready</div>
+        <div class="missing-banner-items">${missingList}</div>
+      </div>
+      <button class="missing-banner-btn" onclick="showTab('logistics')">Review Issues →</button>
+    </div>`;
+  } else {
+    banner.style.display='none';
+    banner.innerHTML='';
+  }
+}
+
+// ── CHECKLIST ───────────────────────────────────────────────────
+const DEFAULT_CHECKLIST = [
+  {id:'pass', emoji:'🛂', text:'Passport',          done:false},
+  {id:'visa', emoji:'🪪', text:'Visa',               done:false},
+  {id:'ins',  emoji:'🏥', text:'Travel Insurance',   done:false},
+  {id:'tkt',  emoji:'✈', text:'Flight Ticket',      done:false},
+  {id:'htl',  emoji:'🏨', text:'Hotel Reservation',  done:false},
+  {id:'sim',  emoji:'📱', text:'SIM Card',           done:false},
+  {id:'vpn',  emoji:'🔒', text:'VPN',                done:false},
+  {id:'cash', emoji:'💵', text:'Local Currency',     done:false},
+  {id:'plug', emoji:'🔌', text:'Power Adapter',      done:false},
+  {id:'pcr',  emoji:'💊', text:'Medications',        done:false},
+];
+
+function getChecklist(tid) {
+  const key = 'checklist_'+tid;
+  try { const v=localStorage.getItem(key); return v?JSON.parse(v):JSON.parse(JSON.stringify(DEFAULT_CHECKLIST)); }
+  catch(e){ return JSON.parse(JSON.stringify(DEFAULT_CHECKLIST)); }
+}
+function saveChecklist(tid, list) {
+  localStorage.setItem('checklist_'+tid, JSON.stringify(list));
+}
+
+function renderChecklist() {
+  const t=getActive();
+  const area=document.getElementById('checklist-area');
+  if(!area) return;
+  if(!t) { area.innerHTML='<div class="no-trip">No active trip</div>'; return; }
+  const list = getChecklist(t.id);
+  const done = list.filter(i=>i.done).length;
+  const pct  = Math.round((done/list.length)*100);
+  const items = list.map((item,idx)=>`
+    <div class="cl-item ${item.done?'done':''}" onclick="toggleCheckItem('${t.id}',${idx})">
+      <div class="cl-check">${item.done?'✓':''}</div>
+      <span class="cl-emoji">${item.emoji}</span>
+      <span class="cl-text">${item.text}</span>
+    </div>`).join('');
+  area.innerHTML = `<div class="checklist-section">
+    <div class="checklist-header">
+      <span>✅ Pre-Flight Checklist</span>
+      <span class="checklist-progress">${done}/${list.length} complete</span>
+    </div>
+    <div class="checklist-progress-bar-wrap"><div class="checklist-progress-bar" style="width:${pct}%"></div></div>
+    ${items}
+    <div class="cl-add-row">
+      <input class="cl-add-inp" id="cl-new-inp" placeholder="Add custom item..." onkeydown="if(event.key==='Enter')addCheckItem('${t.id}')">
+      <button class="btn btn-dark btn-sm" onclick="addCheckItem('${t.id}')">+ Add</button>
+    </div>
+  </div>`;
+}
+
+function toggleCheckItem(tid, idx) {
+  const list=getChecklist(tid);
+  list[idx].done=!list[idx].done;
+  saveChecklist(tid,list);
+  renderChecklist();
+  renderReadinessDashboard();
+}
+
+function addCheckItem(tid) {
+  const inp=document.getElementById('cl-new-inp');
+  if(!inp||!inp.value.trim()) return;
+  const list=getChecklist(tid);
+  list.push({id:uid(),emoji:'☐',text:inp.value.trim(),done:false});
+  saveChecklist(tid,list);
+  inp.value='';
+  renderChecklist();
+}
+
+// Status badge on trip cards
+function getTripStatus(t) { return runValidation(t).status; }
+
+// ── BUDGET ────────────────────────────────────────────────────
+function renderBudget() {
+  const t = getActive();
+  document.getElementById('no-budget').style.display = t ? 'none' : '';
+  const area = document.getElementById('budget-area');
+  if (!t) { area.innerHTML = ''; return; }
+
+  if (!t.budget) t.budget = { limit: 0, currency: 'USD', expenses: [] };
+  const b = t.budget;
+
+  const autoExp = (t.transfers||[]).filter(r => r.cost && parseFloat(r.cost) > 0).map(r => ({
+    desc: (r.from && r.to) ? `${r.from} → ${r.to}` : (r.type || 'Transfer'),
+    amount: parseFloat(r.cost) || 0,
+    date: r.date || ''
+  }));
+
+  const manualTotal = (b.expenses||[]).reduce((s,e) => s + (parseFloat(e.amount)||0), 0);
+  const autoTotal   = autoExp.reduce((s,e) => s + e.amount, 0);
+  const total  = manualTotal + autoTotal;
+  const limit  = parseFloat(b.limit) || 0;
+  const pct    = limit > 0 ? Math.min(100, Math.round((total / limit) * 100)) : 0;
+  const over   = limit > 0 && total > limit;
+  const cur    = esc(b.currency || 'USD');
+  const currencies = ['USD','EUR','ILS','CNY','VND'];
+
+  const autoRows = autoExp.length
+    ? autoExp.map(e => `<tr>
+        <td>${esc(e.date)}</td>
+        <td>${esc(e.desc)} <span class="auto-link">Auto</span></td>
+        <td style="font-family:var(--mono)">${cur} ${e.amount.toFixed(2)}</td>
+        <td></td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" style="padding:10px 13px;font-size:11px;color:var(--text3);font-style:italic">No transfer costs yet — add cost in Logistics tab</td></tr>`;
+
+  const manualRows = (b.expenses||[]).map((e,i) => `<tr>
+    <td><span class="ec" contenteditable onblur="upBudgetExp(${i},'date',this.innerText)">${esc(e.date||'')}</span></td>
+    <td><span class="ec" contenteditable onblur="upBudgetExp(${i},'desc',this.innerText)">${esc(e.desc||'')}</span></td>
+    <td><span class="ec" contenteditable style="font-family:var(--mono)" onblur="upBudgetExp(${i},'amount',this.innerText)">${esc(String(e.amount||0))}</span></td>
+    <td><button class="btn btn-xs btn-danger" onclick="delBudgetExp(${i})">✕</button></td>
+  </tr>`).join('');
+
+  const barColor = over ? 'var(--danger)' : pct > 75 ? 'var(--warn)' : 'var(--accent)';
+
+  area.innerHTML = `
+    <div class="stats-row" style="margin-bottom:16px">
+      <div class="stat">
+        <div class="stat-label">${curLang==='he'?'מגבלת תקציב':'BUDGET LIMIT'}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+          <input type="number" min="0" style="width:110px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:20px;font-weight:900;color:var(--accent);background:transparent;outline:none;font-family:var(--sans)"
+            value="${limit}" onchange="upBudgetLimit(this.value)">
+          <select style="border:1px solid var(--border);border-radius:4px;padding:4px 7px;font-size:12px;background:var(--surface);color:var(--text);outline:none"
+            onchange="upBudgetCurrency(this.value)">
+            ${currencies.map(c=>`<option${c===b.currency?' selected':''}>${esc(c)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">${curLang==='he'?'סה״כ הוצאות':'TOTAL SPENT'}</div>
+        <div class="stat-val" style="${over?'color:var(--danger)':''}">${cur} ${total.toFixed(2)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">${curLang==='he'?'יתרה':'REMAINING'}</div>
+        <div class="stat-val" style="color:${over?'var(--danger)':'var(--ok)'}">${limit>0 ? cur+' '+(limit-total).toFixed(2) : '—'}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">${curLang==='he'?'נוצל':'USED'}</div>
+        <div class="stat-val" style="color:${barColor}">${limit>0?pct+'%':'—'}</div>
+        ${limit>0?`<div style="height:5px;background:var(--dim2);border-radius:3px;margin-top:6px"><div style="height:5px;background:${barColor};border-radius:3px;width:${pct}%;transition:width .3s"></div></div>`:''}
+      </div>
+    </div>
+
+    <div class="log-block">
+      <div class="log-hdr">💸 ${curLang==='he'?'הוצאות':'Expenses'}</div>
+      <table class="log-table">
+        <thead><tr>
+          <th>${curLang==='he'?'תאריך':'Date'}</th>
+          <th>${curLang==='he'?'תיאור':'Description'}</th>
+          <th>${curLang==='he'?'סכום':'Amount'}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          <tr class="log-auto-section"><td colspan="4" style="padding:0">
+            <div class="log-auto-hdr">
+              <span class="log-auto-label">↑ ${curLang==='he'?'מהעברות (אוטומטי)':'From Transfers (auto)'}</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse">${autoRows}</table>
+          </td></tr>
+          <tr><td colspan="4" style="padding:0"><span class="log-manual-label">${curLang==='he'?'הוצאות ידניות':'Manual expenses'}</span></td></tr>
+          ${manualRows}
+        </tbody>
+      </table>
+      <button class="btn-add-row" onclick="addBudgetExp()">+ ${curLang==='he'?'הוסף הוצאה':'Add Expense'}</button>
+    </div>`;
+}
+
+function upBudgetLimit(v) {
+  const t = getActive(); if(!t) return;
+  if (!t.budget) t.budget = {limit:0, currency:'USD', expenses:[]};
+  t.budget.limit = parseFloat(v) || 0;
+  persist(); renderBudget();
+}
+function upBudgetCurrency(v) {
+  const t = getActive(); if(!t) return;
+  if (!t.budget) t.budget = {limit:0, currency:'USD', expenses:[]};
+  t.budget.currency = v;
+  persist(); renderBudget();
+}
+function addBudgetExp() {
+  const t = getActive(); if(!t) return;
+  if (!t.budget) t.budget = {limit:0, currency:'USD', expenses:[]};
+  t.budget.expenses.push({date:'', desc:'', amount:0});
+  persist(); renderBudget();
+}
+function upBudgetExp(i, f, v) {
+  const t = getActive(); if(!t) return;
+  if (!t.budget) return;
+  t.budget.expenses[i][f] = f==='amount' ? (parseFloat(v)||0) : v.trim();
+  persist();
+}
+function delBudgetExp(i) {
+  const t = getActive(); if(!t) return;
+  if (!t.budget) return;
+  t.budget.expenses.splice(i, 1);
+  persist(); renderBudget();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+curLang = localStorage.getItem('tripplanner_supplier_lang') || 'en';
+
+// Seed / update trip data
+(function seedData() {
+  const TRIP_ID = 'guangzhou-supplier';
+  const CATS = [{"id":"flight","name":"טיסה","emoji":"✈","color":"#1a6b8a"},{"id":"transfer","name":"העברה/מונית","emoji":"🚗","color":"#5a7a2e"},{"id":"work","name":"עבודה","emoji":"◆","color":"#2a4a8a"},{"id":"qa","name":"QA / מיון","emoji":"🔍","color":"#6b3d8a"},{"id":"meeting","name":"פגישה","emoji":"🤝","color":"#8a3d6b"},{"id":"meal","name":"ארוחה","emoji":"🍽","color":"#8a6a1a"},{"id":"summary","name":"סיכום יומי","emoji":"📋","color":"#4a4a4a"},{"id":"free","name":"חופשי","emoji":"🌿","color":"#2d6a2d"},{"id":"hotel","name":"מלון","emoji":"🏨","color":"#1a5a6a"}];
+  const tripData = {
+    "id": TRIP_ID,
+    "name": "FASA JUNE 2026",
+    "site": ".",
+    "dest": "Vietnam 🇻🇳 + China 🇨🇳",
+    "start": "2026-06-13",
+    "end": "2026-06-28",
+    "notes": "טיסה מישראל 13.6 לילה, נחיתה הנוי 14.6. טיסה פנימית לגואנגג'ו 17.6. חזרה לוייטנאם 24.6. טיסה לישראל 28.6.",
+    "categories": CATS,
+    "flights": [{"date":"2026-06-13","from":"TLV","to":"BKK","carrier":"EL AL","dep":"23:30","arr":"16:10","flightNum":"LY0081","notes":"Sat 13.6 23:30 → Sun 14.6 16:10 · Seat 38D · 11h40m · Economy"},{"date":"2026-06-14","from":"BKK","to":"HAN","carrier":"Thai Airways","dep":"17:50","arr":"19:40","flightNum":"TG385","notes":"Sun 14.6 · A320 · Seat 49H · 1h50m · T2 · Economy"},{"date":"2026-06-17","from":"HAN","to":"CAN","carrier":"","dep":"","arr":"","flightNum":"","notes":"טיסה פנימית הנוי → גואנגג'ו (17.6)"},{"date":"2026-06-24","from":"CAN","to":"HAN","carrier":"","dep":"","arr":"","flightNum":"","notes":"טיסה פנימית גואנגג'ו → הנוי (24.6)"},{"date":"2026-06-28","from":"HAN","to":"BKK","carrier":"Vietnam Airlines","dep":"16:05","arr":"18:05","flightNum":"","notes":"Sun 28.6 · A321 · 2h · T2 · Economy"},{"date":"2026-06-28","from":"BKK","to":"TLV","carrier":"EL AL","dep":"20:00","arr":"02:50","flightNum":"LY0080","notes":"Sun 28.6 20:00 → Mon 29.6 02:50 · B777 · Seat 45H · 11h40m · Economy"}],
+    "transfers": [],
+    "hotels": [{"checkin":"2026-06-14","checkout":"2026-06-16","name":"Melia Vinpearl","address":"Phu Ly, Vietnam","confirmation":"","notes":"✅ מוזמן"},{"checkin":"2026-06-16","checkout":"2026-06-17","name":"Apricot Hotel","address":"Hanoi, Vietnam","confirmation":"","notes":"❌ לצרך הזמנה"},{"checkin":"2026-06-17","checkout":"2026-06-24","name":"Supplier Hotel","address":"Guangzhou, China","confirmation":"","notes":"✅ מסודר ע\"י ספק"},{"checkin":"2026-06-24","checkout":"2026-06-26","name":"Melia Vinpearl","address":"Phu Ly, Vietnam","confirmation":"","notes":"❓ לאשר"},{"checkin":"2026-06-26","checkout":"2026-06-28","name":"Apricot Hotel","address":"Hanoi, Vietnam","confirmation":"","notes":"❌ לצרך הזמנה"}],
+    "days": [{"date":"2026-06-13","dayLabel":"Sat","dayType":"flight","hotel":"","goal":"Departure from Israel → Bangkok","entries":[{"id":"vd101","time":"23:30","cat":"flight","text":"Flight LY0081 TLV → BKK (EL AL) — Seat 38D, 11h40m"}],"dayNum":1},{"date":"2026-06-14","dayLabel":"Sun","dayType":"travel","hotel":"Melia Vinpearl","goal":"Arrival Bangkok → Hanoi → Phu Ly","entries":[{"id":"vd201","time":"16:10","cat":"flight","text":"Arrival Bangkok Suvarnabhumi (BKK)"},{"id":"vd202","time":"17:50","cat":"flight","text":"Flight TG385 BKK → HAN (Thai Airways, A320) — Seat 49H"},{"id":"vd203","time":"19:40","cat":"flight","text":"Arrival Hanoi Noi Bai (HAN), T2"},{"id":"vd204","time":"21:00","cat":"transfer","text":"Transfer Hanoi → Phu Ly"},{"id":"vd205","time":"22:30","cat":"hotel","text":"Check-in Melia Vinpearl, Phu Ly"}],"dayNum":2},{"date":"2026-06-15","dayLabel":"Mon","dayType":"work","hotel":"Melia Vinpearl","goal":"Casla (Phu Ly) — work day","entries":[{"id":"vd301","time":"07:00","cat":"meal","text":"Breakfast"},{"id":"vd302","time":"08:00","cat":"work","text":"Casla — production / QA"},{"id":"vd303","time":"13:00","cat":"meal","text":"Lunch"},{"id":"vd304","time":"14:00","cat":"work","text":"Casla — continue"},{"id":"vd305","time":"17:00","cat":"qa","text":"QA + sorting"},{"id":"vd306","time":"18:00","cat":"summary","text":"Daily summary"}],"dayNum":3},{"date":"2026-06-16","dayLabel":"Tue","dayType":"travel","hotel":"Apricot Hotel","goal":"Phu Ly → Hanoi (overnight before Guangzhou flight)","entries":[{"id":"vd401","time":"07:00","cat":"meal","text":"Breakfast"},{"id":"vd402","time":"08:00","cat":"work","text":"Casla — final tasks"},{"id":"vd403","time":"15:00","cat":"transfer","text":"Transfer Phu Ly → Hanoi"},{"id":"vd404","time":"17:00","cat":"hotel","text":"Check-in Apricot Hotel, Hanoi"}],"dayNum":4},{"date":"2026-06-17","dayNum":5,"dayLabel":"Wed","dayType":"flight","hotel":"","goal":"Arrival — flight to Guangzhou + transfer to site","entries":[{"id":"sd01e01","time":"08:15","cat":"flight","text":"Flight CZ0372 HAN → CAN (China Southern, A320) — Dep T2, Seat 55H"},{"id":"sd01e02","time":"11:00","cat":"flight","text":"Arrival Guangzhou Baiyun Intl (CAN), Terminal 2"},{"id":"sd01e03","time":"15:00","cat":"transfer","text":"Train to site area (dep 15:00)"},{"id":"sd01e04","time":"17:15","cat":"transfer","text":"Pickup at station → site"}]},{"date":"2026-06-18","dayNum":6,"dayLabel":"Thu","dayType":"work","hotel":"","goal":"Guangzhou — 5031 + 5140 appearance pilots","entries":[{"id":"sd02e02","time":"08:00","cat":"meeting","text":"Preparation meeting + review of all 5 models"},{"id":"sd02e03","time":"08:00","cat":"work","text":"Model 5031 — 1st appearance pilot"},{"id":"sd02e05","time":"11:15","cat":"work","text":"Model 5140 — 1st appearance pilot"},{"id":"sd02e06","time":"13:00","cat":"meal","text":"Lunch"},{"id":"sd02e08","time":"16:00","cat":"qa","text":"QA + appearance sorting (5031 / 5140)"},{"id":"sd02e09","time":"17:30","cat":"summary","text":"Daily summary — overnight trials if needed"},{"id":"sd02e04","time":"18:30","cat":"work","text":"if neeed-Model 5031/5140 — 2nd appearance pilot overnight"}]},{"date":"2026-06-19","dayNum":7,"dayLabel":"Fri","dayType":"work","hotel":"","goal":"Guangzhou — 5110 appearance pilots","entries":[{"id":"sd03e02","time":"08:00","cat":"qa","text":"inspection overnight trials (5031 / 5140)"},{"id":"sd03e03","time":"09:00","cat":"work","text":"Model 5110 — 1st appearance pilot (10 slabs)"},{"id":"sd05e03","time":"11:00","cat":"work","text":"Model 6131 — 1st appearance pilot (10 slabs)"},{"id":"sd03e05","time":"13:00","cat":"meal","text":"Lunch"},{"id":"sd03e07","time":"15:30","cat":"work","text":"Adjustments + re-pilots if needed"},{"id":"sd03e06","time":"16:30","cat":"qa","text":"QA + appearance sorting (5110)"},{"id":"sd03e08","time":"17:30","cat":"summary","text":"Daily summary — overnight trials if needed"},{"id":"sd03e04","time":"18:30","cat":"work","text":"over night Model 5110 — 2nd appearance pilot (10 slabs)"}]},{"date":"2026-06-20","dayNum":8,"dayLabel":"Sat","dayType":"free","hotel":"","goal":"Rest day","entries":[{"id":"sd04e01","time":"","cat":"free","text":"Day off 🌅- additional factory trials"}]},{"date":"2026-06-21","dayNum":9,"dayLabel":"Sun","dayType":"work","hotel":"","goal":"Guangzhou — 6131 appearance pilots","entries":[{"id":"sd05e02","time":"10:00","cat":"qa","text":"review slabs"},{"id":"sd05e04","time":"11:00","cat":"work","text":"Model 6131 — 2nd appearance pilot (10 slabs)"},{"id":"sd05e05","time":"13:00","cat":"meal","text":"Lunch"},{"id":"sd05e06","time":"14:00","cat":"qa","text":"QA + appearance sorting (6131)"},{"id":"sd05e07","time":"15:30","cat":"work","text":"Adjustments + re-pilots if needed"},{"id":"sd05e08","time":"16:30","cat":"summary","text":"Daily summary — overnight trials if needed"},{"id":"mq3qg45mo0o","time":"17:30","cat":"flight","text":"technological pilot overnight"}]},{"date":"2026-06-22","dayNum":10,"dayLabel":"Mon","dayType":"work","hotel":"","goal":"Guangzhou — 5151 appearance pilots","entries":[{"id":"sd06e02","time":"08:00","cat":"qa","text":"Review overnight trials (6131)"},{"id":"sd06e03","time":"09:00","cat":"work","text":"Model 5151 — 1st appearance pilot (10 slabs)"},{"id":"sd06e05","time":"13:00","cat":"meal","text":"Lunch"},{"id":"sd06e07","time":"15:30","cat":"work","text":"Adjustments + re-pilots if needed"},{"id":"sd06e06","time":"16:30","cat":"qa","text":"QA + appearance sorting (5151)"},{"id":"sd06e08","time":"17:30","cat":"summary","text":"Daily summary — overnight trials if needed"},{"id":"mq3qhm82f0f","time":"22:30","cat":"flight","text":"techological pilot overnight(20 slabs)"}]},{"date":"2026-06-23","dayNum":11,"dayLabel":"Tue","dayType":"work","hotel":"Hilton Guangzhou Tianhe","goal":"Guangzhou — final approvals + Master Slabs","entries":[{"id":"sd07e02","time":"08:30","cat":"qa","text":"Sorting overnight slabs"},{"id":"sd07e03","time":"09:30","cat":"work","text":"Final appearance approvals — all 5 models"},{"id":"sd07e05","time":"13:00","cat":"meal","text":"Lunch"},{"id":"sd07e07","time":"16:00","cat":"qa","text":"Final QA + sorting (all 5 models)"},{"id":"sd07e08a","time":"17:30","cat":"summary","text":"Visit summary + conclusions"},{"id":"sd07e08b","time":"18:30","cat":"transfer","text":"Train ride back to hotel area"},{"id":"sd07e09","time":"20:00","cat":"hotel","text":"Check-in Hilton Guangzhou Tianhe (near airport for morning flight)"}]},{"date":"2026-06-24","dayNum":12,"dayLabel":"Wed","dayType":"flight","hotel":"Hilton Guangzhou Tianhe","goal":"Departure — checkout + flight back to Hanoi","entries":[{"id":"sd08e01","time":"08:00","cat":"hotel","text":"Hotel check-out"},{"id":"sd08e02","time":"11:00","cat":"transfer","text":"Transfer to Guangzhou Baiyun Intl (CAN)"},{"id":"sd08e03","time":"13:40","cat":"flight","text":"Flight CZ8315 CAN → HAN (China Southern) — Dep T2, Seat 53H"},{"id":"sd08e04","time":"14:45","cat":"flight","text":"Arrival Hanoi Noi Bai (HAN), Terminal 2"}]},{"date":"2026-06-25","dayLabel":"Thu","dayType":"work","hotel":"Melia Vinpearl","goal":"Casla (Phu Ly) — work day","entries":[{"id":"rd101","time":"07:00","cat":"meal","text":"Breakfast"},{"id":"rd102","time":"08:00","cat":"work","text":"Casla — production / QA"},{"id":"rd103","time":"13:00","cat":"meal","text":"Lunch"},{"id":"rd104","time":"14:00","cat":"work","text":"Casla — continue"},{"id":"rd105","time":"17:00","cat":"qa","text":"QA + sorting"},{"id":"rd106","time":"18:00","cat":"summary","text":"Daily summary"}],"dayNum":13},{"date":"2026-06-26","dayLabel":"Fri","dayType":"travel","hotel":"Apricot Hotel","goal":"Casla → Hanoi","entries":[{"id":"rd201","time":"07:00","cat":"meal","text":"Breakfast"},{"id":"rd202","time":"08:00","cat":"work","text":"Casla — final tasks"},{"id":"rd203","time":"15:00","cat":"transfer","text":"Transfer Phu Ly → Hanoi"},{"id":"rd204","time":"17:00","cat":"hotel","text":"Check-in Apricot Hotel, Hanoi"}],"dayNum":14},{"date":"2026-06-27","dayLabel":"Sat","dayType":"free","hotel":"Apricot Hotel","goal":"Free day — Hanoi","entries":[{"id":"rd301","time":"","cat":"free","text":"Day off 🌅 — Hanoi"}],"dayNum":15},{"date":"2026-06-28","dayLabel":"Sun","dayType":"flight","hotel":"","goal":"Departure — Hanoi → Bangkok → Israel","entries":[{"id":"rd401","time":"08:00","cat":"hotel","text":"Hotel check-out"},{"id":"rd402","time":"13:00","cat":"transfer","text":"Transfer to Hanoi Noi Bai (HAN)"},{"id":"rd403","time":"16:05","cat":"flight","text":"Flight HAN → BKK (Vietnam Airlines, A321) — 2h, T2"},{"id":"rd404","time":"18:05","cat":"flight","text":"Arrival Bangkok (BKK)"},{"id":"rd405","time":"20:00","cat":"flight","text":"Flight LY0080 BKK → TLV (EL AL, B777) — Seat 45H, 11h40m"},{"id":"rd406","time":"02:50","cat":"flight","text":"Arrival Tel Aviv (TLV) — Mon 29.6 02:50"}],"dayNum":16}]
+  };
+
+  const state = loadState();
+  const idx = state.trips.findIndex(t => t.id === TRIP_ID);
+  if (idx === -1) {
+    // Only seed if this trip doesn't exist yet — never overwrite user edits
+    state.trips.push(tripData);
+    state.activeId = TRIP_ID;
+  } else if (!state.activeId) {
+    state.activeId = TRIP_ID;
+  }
+  localStorage.setItem('tripplanner_supplier_v8', JSON.stringify(state));
+  S = state;
+})();
+
+updateHeader();
+applyLang();
+
+// ── AUTOSAVE on window close / tab switch ─────────────────────
+window.addEventListener('beforeunload', function() {
+  try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e) {}
+});
+// Also save when tab becomes hidden (mobile / switching tabs)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') {
+    try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e) {}
+  }
+});
+
+// Force render the active tab after data load
+(function initialRender() {
+  const t = getActive();
+  if (!t) return;
+  // Find which tab is active and render it
+  const activeTab = document.querySelector('.tab.active');
+  const tabName = activeTab ? activeTab.getAttribute('data-tab') : 'schedule';
+  if (tabName === 'schedule' || !activeTab) {
+    // Make schedule tab active
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tb => tb.classList.remove('active'));
+    document.getElementById('tab-schedule').classList.add('active');
+    const schedTab = document.querySelector('.tab[data-tab="schedule"]');
+    if (schedTab) schedTab.classList.add('active');
+    renderSchedule();
+  }
+})();
+</script>
+</body>
+</html>
