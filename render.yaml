@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: trip-planner
+    env: static
+    staticPublishPath: .
+    buildCommand: ""
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /מתכנן_נסיעות.html
